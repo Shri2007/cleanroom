@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 from server import checker
-from server.trace import KEYS, READING_FIELDS, Trace
+from server.trace import KEYS, READING_FIELDS, Trace, is_suspect
 
 SOURCE = "replay"  # lets a replayed trace be told apart from a live "camera" one
 
@@ -50,17 +50,28 @@ def load(path):
 
 
 def usable(lines):
-    """Lines a replay re-records: everything the operator did not undo."""
-    return [line for line in lines if not line.get("deleted")]
+    """Lines a replay re-records: not undone by the operator and not suspect.
+
+    A line is left out if it is deleted, if the saved file flags it suspect, or if the sanity rule
+    (`server.trace.is_suspect`) flags it now, so a replayed trace never contains a suspect line,
+    whatever the saved flag says. This is the same set of lines the checker scores.
+    """
+    return [line for line in lines
+            if not line.get("deleted") and not line.get("suspect")
+            and not is_suspect(line["key"], line["display"])]
 
 
 def replay(saved, out_path):
     """Re-record a saved trace into a new file through `Trace.append`, with no vision.
 
-    `saved` is a path or a list of lines from `load()`. Deleted lines are dropped, so seq
-    numbers restart at 1; test numbers are rebuilt from the AC keys exactly as in a live run,
-    and `suspect` is recomputed from the key and display by the same rule. Returns the new Trace.
-    Refuses to touch an existing file (a Trace would append to it) or the file it is replaying.
+    `saved` is a path or a list of lines from `load()`. Deleted and suspect lines are dropped (see
+    `usable`), so seq numbers restart at 1 and stay contiguous; test numbers are rebuilt from the AC
+    keys exactly as in a live run. Every kept line has suspect false and deleted false. Returns the
+    new Trace. Refuses to touch an existing file (a Trace would append to it) or the file it is
+    replaying.
+
+    Dropping a suspect AC line (the AC key is what starts a new test) merges that test into the one
+    before it, so the copy is not reset between them. The checker skips a suspect line too.
     """
     out_path = Path(out_path)
     if not isinstance(saved, list):

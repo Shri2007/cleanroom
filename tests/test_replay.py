@@ -78,13 +78,69 @@ class ReplayTest(unittest.TestCase):
             trace = replay.replay(SAVED + second, Path(d) / "t.jsonl")
         self.assertEqual([l["test"] for l in trace.lines], [1] * 5 + [2] * 5)
 
-    def test_suspect_is_recomputed_not_copied(self):
+    def test_saved_suspect_line_stays_excluded(self):
         rows = [dict(r) for r in SAVED]
-        rows[1]["display"] = "7"      # key "2" but display "7": the same sanity rule flags it
+        rows[2]["suspect"] = True  # the "+" line: flagged suspect in the saved file, reading itself looks fine
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "again.jsonl"
+            trace = replay.replay(rows, out)
+            on_disk = replay.load(out)
+        self.assertEqual([l["key"] for l in trace.lines], ["AC", "2", "3", "="])
+        self.assertEqual(on_disk, trace.lines)  # excluded in the file too, not just in memory
+        self.assertFalse(any(l["suspect"] for l in trace.lines))
+
+    def test_suspect_exclusion_survives_replaying_the_replay(self):
+        rows = [dict(r) for r in SAVED]
+        rows[2]["suspect"] = True
+        with tempfile.TemporaryDirectory() as d:
+            first = replay.replay(rows, Path(d) / "one.jsonl")
+            second = replay.replay(Path(d) / "one.jsonl", Path(d) / "two.jsonl")
+        self.assertEqual(
+            [(l["seq"], l["test"], l["key"], l["display"]) for l in second.lines],
+            [(l["seq"], l["test"], l["key"], l["display"]) for l in first.lines])
+        self.assertEqual([l["key"] for l in second.lines], ["AC", "2", "3", "="])
+
+    def test_line_the_sanity_rule_flags_is_excluded_even_if_saved_clean(self):
+        rows = [dict(r) for r in SAVED]
+        rows[1]["display"] = "7"      # key "2" but display "7": is_suspect says so, whatever the file says
         rows[1]["suspect"] = False
+        rows[3]["display"] = None     # a failed reading
+        rows[3]["suspect"] = False
         with tempfile.TemporaryDirectory() as d:
             trace = replay.replay(rows, Path(d) / "t.jsonl")
-        self.assertTrue(trace.lines[1]["suspect"])
+        self.assertEqual([l["key"] for l in trace.lines], ["AC", "+", "="])
+        self.assertFalse(any(l["suspect"] for l in trace.lines))
+
+    def test_replayed_lines_keep_the_agreed_trace_contract(self):
+        rows = [dict(r) for r in SAVED] + [dict(r, test=2, seq=r["seq"] + 5) for r in SAVED]
+        rows[1]["deleted"] = True     # dropped
+        rows[4]["suspect"] = True     # dropped
+        rows[7]["suspect"] = True     # dropped (the "+" of test 2)
+        with tempfile.TemporaryDirectory() as d:
+            trace = replay.replay(rows, Path(d) / "t.jsonl")
+        types = {"seq": int, "test": int, "t": (int, float), "source": str, "key": str,
+                 "display": (str, type(None)), "expression": (str, type(None)),
+                 "clear_label": (str, type(None)), "active_op": (str, type(None)),
+                 "suspect": bool, "deleted": bool}
+        order = list(SAVED[0].keys())
+        self.assertEqual(order, ["seq", "test", "t", "source", "key", "display", "expression",
+                                 "clear_label", "active_op", "suspect", "deleted"])
+        for line in trace.lines:
+            self.assertEqual(list(line.keys()), order)             # same fields, same order as the sample
+            for field, kind in types.items():
+                self.assertIsInstance(line[field], kind, (field, line))
+            self.assertEqual(line["source"], replay.SOURCE)
+            self.assertEqual(replay.SOURCE, "replay")
+            self.assertIs(line["suspect"], False)                   # no suspect line leaks in
+            self.assertIs(line["deleted"], False)                   # nor a deleted one
+        self.assertEqual([l["seq"] for l in trace.lines], list(range(1, len(trace.lines) + 1)))  # contiguous
+        # test 1 lost its "2" (deleted) and "=" (suspect); test 2 lost its "+" (suspect)
+        self.assertEqual([l["key"] for l in trace.lines], ["AC", "+", "3", "AC", "2", "3", "="])
+        self.assertEqual([l["test"] for l in trace.lines], [1, 1, 1, 2, 2, 2, 2])
+        # values of the kept lines are the saved values, in saved order
+        kept = [r for r in rows if not r["deleted"] and not r["suspect"]]
+        self.assertEqual([(l["key"], {f: l[f] for f in READING_FIELDS}) for l in trace.lines],
+                         [(r["key"], {f: r[f] for f in READING_FIELDS}) for r in kept])
 
     def test_never_overwrites_or_appends(self):
         with tempfile.TemporaryDirectory() as d:
