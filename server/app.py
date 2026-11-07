@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import subprocess
 import tempfile
 import time
@@ -25,7 +26,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from server import camera, reader
+from server import brain, camera, reader
 from server.trace import KEYS, Trace
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,6 +42,7 @@ log = logging.getLogger("cleanroom")
 
 @asynccontextmanager
 async def lifespan(app):
+    state["loop"] = asyncio.get_running_loop()  # lets the brain thread send live events
     use_camera = SOURCE == "camera" and not STILL
     if use_camera:
         index = int(os.environ.get("CLEANROOM_CAMERA", "1"))
@@ -63,7 +65,7 @@ async def lifespan(app):
 app = FastAPI(title="Clean Room", lifespan=lifespan)
 app.mount("/web", StaticFiles(directory=ROOT / "web"), name="web")
 
-state = {"busy": False, "trace": None}
+state = {"busy": False, "trace": None, "brain_running": False, "loop": None}
 subscribers = set()
 
 
@@ -112,10 +114,19 @@ def grab_frame():
         return None
 
 
-def emit(event, data):
-    message = f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+def _fan_out(message):
     for queue in list(subscribers):
         queue.put_nowait(message)
+
+
+def emit(event, data):
+    """Send an SSE event to every page. Safe to call from the brain's worker thread."""
+    message = f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+    loop = state["loop"]
+    if loop is not None:
+        loop.call_soon_threadsafe(_fan_out, message)
+    else:
+        _fan_out(message)
 
 
 def set_busy(busy):
@@ -172,6 +183,45 @@ async def session_new():
     trace = new_trace()
     emit("session", {"path": trace.path.name})
     return {"path": trace.path.name}
+
+
+class BrainRun(BaseModel):
+    trace: str | None = None  # a file name in traces/; default: the live session
+
+
+@app.post("/brain/run")
+async def brain_run(body: BrainRun | None = None):
+    """Run spec → copy → score → fix in the background. Progress arrives as SSE `brain` events."""
+    if state["brain_running"]:
+        raise HTTPException(409, "brain is already running")
+    name = body.trace if body and body.trace else state["trace"].path.name
+    if not re.fullmatch(r"[\w.-]+\.jsonl", name) or not (ROOT / "traces" / name).is_file():
+        raise HTTPException(400, f"no such trace: {name!r}")
+    state["brain_running"] = True
+
+    async def work():
+        try:
+            await asyncio.to_thread(brain.run_loop, ROOT / "traces" / name, lambda e: emit("brain", e))
+        except Exception as e:  # report it on screen instead of failing silently
+            log.exception("brain run failed")
+            emit("brain", {"step": "failed", "error": f"{type(e).__name__}: {e}"[:300]})
+        finally:
+            state["brain_running"] = False
+
+    asyncio.create_task(work())
+    return {"started": True, "trace": name}
+
+
+@app.get("/scores")
+async def scores():
+    return brain.load_history()
+
+
+@app.get("/copies/{name}")
+async def get_copy(name: str):
+    if not re.fullmatch(r"calc_v\d+\.js", name) or not (ROOT / "copies" / name).is_file():
+        raise HTTPException(404, "no such copy")
+    return FileResponse(ROOT / "copies" / name, media_type="text/plain")
 
 
 @app.get("/trace")
