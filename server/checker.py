@@ -7,6 +7,7 @@ and on held-out tests separately, so a copy that only memorised the lines it was
 shows up as a gap between the two numbers.
 """
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -14,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CHECK_MJS = ROOT / "checker" / "check.mjs"
 DEFAULT_TRACE = ROOT / "traces" / "sample.jsonl"
-TIMEOUT_SECONDS = 20  # whole run; each call into the copy has its own 500 ms limit
+TIMEOUT_SECONDS = 10  # whole run; each call into the copy has its own 500 ms limit
 
 
 class CheckerError(RuntimeError):
@@ -39,13 +40,20 @@ def check(copy_path, trace_path=DEFAULT_TRACE, tests=None, mode=None):
     None picks it from the trace (all lines source "cal" -> cal). match_pct is a
     percentage 0-100, or None when no lines were compared.
     """
-    cmd = ["node", str(CHECK_MJS), str(copy_path), str(trace_path)]
+    copy_path, trace_path = Path(copy_path).resolve(), Path(trace_path).resolve()
+    # The copy is AI-written code. Node's permission model lets the process read only the
+    # checker, the copy and the trace (no writes, no child processes), and it gets no
+    # environment except PATH, so API keys are never visible even if the vm is escaped.
+    cmd = ["node", "--permission",
+           f"--allow-fs-read={CHECK_MJS.parent}", f"--allow-fs-read={copy_path}", f"--allow-fs-read={trace_path}",
+           str(CHECK_MJS), str(copy_path), str(trace_path)]
     if tests is not None:
         cmd += ["--tests", ",".join(str(t) for t in tests)]
     if mode is not None:
         cmd += ["--mode", mode]
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_SECONDS,
+                              env={"PATH": os.environ.get("PATH", "")})
     except subprocess.TimeoutExpired:
         raise CheckerError(f"checker timed out after {TIMEOUT_SECONDS}s (copy hangs?)")
     except FileNotFoundError:
