@@ -3,3 +3,7 @@
 *_data.json
 private_keys.json
 __pycache__/
+*identity*.json
+*.seed
+*.key
+*private*key*.json
