@@ -1,9 +1,12 @@
-"""Smoke test: camera thread + operator pages produce a trace the checker can score.
+"""Smoke test: camera thread + operator pages produce a trace the real checker scores.
 
 No camera and no API keys are needed: the camera is a fake capture device and
 the vision reader is swapped for a deterministic calculator model. The app is
-exercised through its ASGI interface, exactly like a browser would.
+exercised through its ASGI interface, exactly like a browser would, and the
+trace it writes is scored by server.checker / checker/check.mjs against the
+reference calculator copy in tests/fixtures/calc_good.js.
 
+Needs a Node that supports `--permission` on PATH (v24 tested).
 Run: uv run python -m unittest discover -s tests -v
 """
 import asyncio
@@ -21,11 +24,12 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from server import camera  # noqa: E402
+from server import camera, checker  # noqa: E402
 from server.trace import Trace  # noqa: E402
 from server.trace import is_suspect  # noqa: E402
 
 SAMPLE = ROOT / "traces" / "sample.jsonl"
+FIXTURES = ROOT / "tests" / "fixtures"
 SCRIPT = ["AC", "2", "+", "3", "="]
 
 
@@ -277,17 +281,9 @@ class OperatorFlowTest(unittest.TestCase):
         text = self.trace_path.read_text()
         return [json.loads(line) for line in text.splitlines() if line.strip()]
 
-    def score(self, lines):
-        """Replay the trace the way checker/check.mjs will: key -> display."""
-        replay = Calculator()
-        matched = checked = 0
-        for line in lines:
-            if line["deleted"]:
-                continue
-            replay.press(line["key"])
-            checked += 1
-            matched += replay.display == line["display"]
-        return matched, checked
+    def score(self, copy="calc_good.js"):
+        """Run the real Node checker against this test's trace."""
+        return checker.check(FIXTURES / copy, self.trace_path)
 
     def test_pages_load(self):
         status, body = self.client.request("GET", "/")
@@ -334,8 +330,18 @@ class OperatorFlowTest(unittest.TestCase):
             for field, kind in types.items():
                 self.assertIsInstance(line[field], kind, (field, line))
 
-        # The checker can replay it: every recorded display matches its key.
-        self.assertEqual(self.score(lines), (5, 5))
+        # The real checker can replay it: every recorded line matches the reference copy.
+        report = self.score()
+        self.assertEqual(report["match_pct"], 100.0, report["mismatches"])
+        self.assertEqual((report["matched"], report["total"], report["skipped"]), (5, 5, 0))
+        self.assertEqual(report["mismatches"], [])
+
+        # A wrong copy is scored down for the right line, so this is not a rubber stamp.
+        wrong = self.score("calc_bad.js")
+        self.assertEqual(wrong["match_pct"], 80.0)
+        self.assertEqual([m["seq"] for m in wrong["mismatches"]], [5])
+        self.assertEqual(wrong["mismatches"][0]["diffs"],
+                         [{"field": "display", "expected": "5", "got": "6"}])
 
         # Snap re-reads the last line instead of appending one.
         status, raw = self.client.request("POST", "/snap")
@@ -348,7 +354,9 @@ class OperatorFlowTest(unittest.TestCase):
         self.assertEqual(status, 200, raw)
         self.assertTrue(json.loads(raw)["line"]["deleted"])
         self.assertTrue(self.lines()[-1]["deleted"])
-        self.assertEqual(self.score(self.lines()), (4, 4))
+        report = self.score()
+        self.assertEqual(report["match_pct"], 100.0, report["mismatches"])
+        self.assertEqual((report["matched"], report["total"], report["skipped"]), (4, 4, 1))
 
         for _ in range(4):
             status, _ = self.client.request("POST", "/undo")
