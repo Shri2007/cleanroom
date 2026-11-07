@@ -51,7 +51,8 @@ def check_cal(code, lines, tests):
     else:
         need('server.checker.run("cal", code, lines, tests); using the agent-local isolated checker')
         process = subprocess.run(
-            ['node', '--permission', f'--allow-fs-read={ROOT / "agent"}', str(ROOT / 'agent/check_cal.mjs')],
+            # read only the checker script: agent/ also holds .identity.json (the agent's key)
+            ['node', '--permission', f'--allow-fs-read={ROOT / "agent/check_cal.mjs"}', str(ROOT / 'agent/check_cal.mjs')],
             input=json.dumps({'code': code, 'lines': lines, 'tests': tests}),
             capture_output=True, text=True, timeout=2,
             env={'PATH': os.environ.get('PATH', '')}, check=True,
