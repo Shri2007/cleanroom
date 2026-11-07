@@ -23,9 +23,12 @@ SNAPSHOT = {
 }
 
 
-def snapshot_reply(text, snapshot=None):
+def snapshot_reply(text, snapshot=None, address=None, name=None):
     data=SNAPSHOT if snapshot is None else snapshot
-    command=text.strip()
+    words=text.strip().split()
+    if words and words[0].rstrip(':,') in {f'@{value}' for value in (address,name) if value}:
+        words=words[1:]
+    command=' '.join(words)
     if command not in {'status','rules','score','tests'}:
         return 'Read-only snapshot. Commands: status, rules, score, tests.'
     if command=='status':
@@ -53,7 +56,7 @@ def install(hosted):
             text='Rate limit: at most 10 messages per minute.'
         else:
             window.append(now)
-            text=snapshot_reply(' '.join(part.text for part in msg.content if isinstance(part,TextContent)))
+            text=snapshot_reply(' '.join(part.text for part in msg.content if isinstance(part,TextContent)),address=hosted.address,name=hosted.name)
         await ctx.send(sender,ChatMessage(timestamp=datetime.now(timezone.utc),msg_id=uuid4(),
                                          content=[TextContent(type='text',text=text),EndSessionContent(type='end-session')]))
     @protocol.on_message(model=ChatAcknowledgement)

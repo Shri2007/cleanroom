@@ -48,6 +48,17 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(parse_command('rebuild today-run')[0],('rebuild','today-run'))
         self.assertIsNone(parse_command('reset now')[0])
 
+    def test_asi_routing_mention_preserves_command_allowlist(self):
+        address='agent1ourcoordinator'
+        self.assertEqual(parse_command(f'@{address} rebuild cal',address)[0],('rebuild','cal'))
+        self.assertEqual(parse_command(f'@{address}: status',address)[0],('status',None))
+        self.assertEqual(parse_command('@cleanroom score',address,'cleanroom')[0],('score',None))
+        self.assertIsNone(parse_command('@someoneelse rebuild cal',address)[0])
+        self.assertEqual(parse_command(f'@{address} rebuild https://evil.example',address)[1],'Unknown target.')
+        self.assertEqual(parse_command(f'@{address} rebuild cal extra',address)[1],'Unknown target.')
+        self.assertIsNone(parse_command(f'@{address} @someoneelse rebuild cal',address)[0])
+        self.assertIn('No verified',snapshot_reply(f'@{address} status',address=address))
+
     def test_rate_window_boundary(self):
         now=[0];limiter=RateLimit(lambda:now[0])
         self.assertTrue(all(limiter.allow('sender') for _ in range(10)))
@@ -75,7 +86,7 @@ class WorkflowTests(unittest.IsolatedAsyncioTestCase):
         import agent.compat
         def functions(module,name):return None
         with patch('agent.compat.function',side_effect=functions),patch('agent.builder.function',return_value=None),patch.dict('os.environ',{'SUBQ_API_KEY':''}):
-            await self.runtime.coordinator.handle_chat(self.ctx,'user',chat_message('rebuild cal'))
+            await self.runtime.coordinator.handle_chat(self.ctx,'user',chat_message('@'+self.runtime.agents['coordinator'].address+' rebuild cal'))
             await asyncio.gather(*list(self.runtime.coordinator.tasks))
         snapshot=self.runtime.coordinator.snapshot
         self.assertTrue(snapshot['stub'])

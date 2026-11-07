@@ -33,8 +33,13 @@ COMMANDS={'status','rules','score','tests','start','reset','test'}
 STAGE_TIMEOUTS={'explorer':30,'builder':180,'verifier':15}
 
 
-def parse_command(text):
+def parse_command(text, address=None, name=None):
     words=text.strip().split()
+    # ASI:One includes its routing mention in TextContent. Strip only our own
+    # leading mention; arbitrary prefixes and target URLs remain invalid.
+    mentions={f'@{value}' for value in (address,name) if value}
+    if words and words[0].rstrip(':,') in mentions:
+        words=words[1:]
     if len(words)==2 and words[0]=='rebuild':
         if words[1] not in ALLOW_TARGETS:return None,'Unknown target.'
         return ('rebuild',words[1]),None
@@ -86,7 +91,8 @@ class StageFailure(RuntimeError):
 
 
 class Coordinator:
-    def __init__(self, addresses, owner='', timeouts=None):
+    def __init__(self, addresses, owner='', timeouts=None, address=None, name=None):
+        self.address=address;self.name=name
         self.addresses=addresses;self.owner=owner;self.timeouts=timeouts or STAGE_TIMEOUTS
         self.snapshot={};self.events=[];self.last_good=None;self.busy=False
         self.rate=RateLimit();self.tasks=set();self.active_job=None
@@ -149,7 +155,7 @@ class Coordinator:
         text=' '.join(part.text for part in message.content if isinstance(part,TextContent))
         if len(text)>256:
             await ctx.send(sender,chat_message('Command too long.'));return
-        parsed,error=parse_command(text)
+        parsed,error=parse_command(text,self.address,self.name)
         if error:
             await ctx.send(sender,chat_message(error));return
         command,target=parsed
@@ -214,7 +220,8 @@ def make_runtime(seed=None, *, online=True, operations=None, timeouts=None):
                       enable_agent_inspector=(role=='coordinator'),report_events=False)
             for role in roles}
     coordinator=Coordinator({role:agents[role].address for role in roles if role!='coordinator'},
-                            owner=os.environ.get('OWNER_ADDRESS',''),timeouts=timeouts)
+                            owner=os.environ.get('OWNER_ADDRESS',''),timeouts=timeouts,
+                            address=agents['coordinator'].address,name=agents['coordinator'].name)
     operations=operations or {'explorer':explore,'builder':build,'verifier':verify}
     handlers={}
     for role in roles[1:]:
