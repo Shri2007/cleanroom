@@ -147,7 +147,7 @@
       <div class="bars" id="bars"></div>
     </div>
   </section>
-  <div class="keys">click once for sound · W watch the phone · R run brain · T ask for a test · N new session</div>
+  <div class="keys">click once for sound · W watch the phone · R run brain · T ask for a test · M modernize · N new session</div>
 </div>
 
 <div class="flash" id="flash"></div>
@@ -257,6 +257,10 @@ function setBrain(text, on) {
   $('brainText').textContent = text;
 }
 
+function showAsk(lead, text) {
+  $('ask').firstChild.textContent = lead; $('askText').textContent = text; $('ask').classList.add('on');
+}
+
 function clearAll() {
   lines = []; rules = []; versions = []; shownPct = 0;
   renderRows(); renderRules(); renderBars();
@@ -288,9 +292,22 @@ function connect() {
     const d = JSON.parse(e.data); watching = d.on; $('watchPill').hidden = !d.on;
     if (d.error) setBrain(d.error, false);
   });
+  es.addEventListener('modernize', e => {
+    const d = JSON.parse(e.data);
+    if (d.step === 'start') { setBrain('modernizing ' + d.from + '…', true); showAsk('Modernizing ', d.from + ' (' + d.before_lines + ' lines)'); }
+    else if (d.step === 'done') {
+      setBrain(d.kept ? 'modernized: ' + d.file : 'rewrite rejected, kept ' + d.from, false);
+      showAsk(d.kept ? 'Modernized: ' : 'Rejected: ',
+        d.before_lines + ' → ' + d.after_lines + ' lines · ' +
+        (d.identical ? 'identical to the old code on all ' + d.presses + ' observed presses'
+          : d.kept ? 'and fixes behavior: ' + fmtPct(d.before_pct) + '% → ' + fmtPct(d.after_pct) + '%'
+          : 'it changed behavior, so the old copy stays'));
+    }
+    else if (d.step === 'failed') setBrain('modernize failed: ' + d.error, false);
+  });
   es.addEventListener('pick_test', e => {
     const d = JSON.parse(e.data);
-    $('askText').textContent = d.instruction; $('ask').classList.add('on');
+    showAsk('The AI asks: ', d.instruction);
   });
   es.addEventListener('brain', e => {
     const d = JSON.parse(e.data);
@@ -318,7 +335,8 @@ document.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey) return;
   const k = e.key.toLowerCase();
   if (k === 'r') post('/brain/run');
-  else if (k === 't') { $('askText').textContent = 'thinking…'; $('ask').classList.add('on'); post('/brain/pick_test'); }
+  else if (k === 't') { showAsk('The AI asks: ', 'thinking…'); post('/brain/pick_test'); }
+  else if (k === 'm') post('/brain/modernize');
   else if (k === 'n') post('/session/new');
   else if (k === 'w') post('/watch/toggle');
   else if (k === 'escape') $('ask').classList.remove('on');

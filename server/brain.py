@@ -314,6 +314,59 @@ def run_loop(trace_path, on_event=print):
     return best
 
 
+# ---------- modernize: same behavior, better code ----------
+
+def code_lines(code):
+    return sum(1 for line in code.splitlines() if line.strip() and not line.strip().startswith("//"))
+
+
+def best_calc_version():
+    """The copy that did best on tests it never saw (then on training), same pick as the twin page."""
+    calc = load_history().get("calc", [])
+    if not calc:
+        raise ValueError("no calculator copies yet: run the brain first")
+    return max(calc, key=lambda v: (v["held_pct"] if v["held_pct"] is not None else -1, v["train_pct"] or 0))
+
+
+def modernize(trace_path, on_event=print):
+    """Rewrite the best copy as clean, modern code, then prove it still behaves the same on every
+    observed press (train and held-out). Kept only if it matches at least as many lines as before."""
+    lines = episodes(usable(load(trace_path)))
+    if not lines:
+        raise ValueError("the trace has no usable lines")
+    old = best_calc_version()
+    old_code = (COPIES / old["file"]).read_text()
+    tests = sorted({l["test"] for l in lines})
+    before = score(old_code, lines, tests)
+    on_event({"step": "start", "from": old["file"], "before_lines": code_lines(old_code),
+              "before_pct": before["match_pct"]})
+    system = ("You modernize legacy code without changing what it does. Rewrite this calculator copy as clean, "
+              "modern, well-structured JavaScript: small pure functions, clear names, no dead code, no duplicated "
+              f"logic, and noticeably shorter than the legacy code ({code_lines(old_code)} lines now; aim for under "
+              f"{int(code_lines(old_code) * 0.75)}). Every observable output (display, expression, clear_label, active_op) must stay exactly the "
+              "same for every key sequence, including quirks. " + COPY_RULES)
+    new_code = check_code(ask(system, f"LEGACY CODE:\n{old_code}"))
+    after = score(new_code, lines, tests)
+    # Equivalence, not just the same percentage: on every press the new code must give exactly what the
+    # old code gave, mistakes included (same mismatched lines, same wrong values). Or strictly better.
+    same_misses = sorted((m["seq"], json.dumps(m["got"], sort_keys=True)) for m in before.get("mismatches", []))
+    new_misses = sorted((m["seq"], json.dumps(m["got"], sort_keys=True)) for m in after.get("mismatches", []))
+    identical = not after.get("error") and same_misses == new_misses
+    kept = identical or (after["match_pct"] > before["match_pct"] and not after.get("error"))
+    version = next_version()
+    if kept:  # save train and held-out scores separately, so the twin page ranks it honestly
+        train_ids, held_ids = split(lines)
+        save_version(version, new_code, old.get("rules", []), "modernized",
+                     score(new_code, lines, train_ids), score(new_code, lines, held_ids), True)
+    result = {"step": "done", "from": old["file"], "file": f"calc_v{version}.js" if kept else None, "kept": kept,
+              "identical": identical, "presses": before.get("total", 0),
+              "before_lines": code_lines(old_code), "after_lines": code_lines(new_code),
+              "before_pct": before["match_pct"], "after_pct": after["match_pct"], "brain": last_brain,
+              "broke": [m for m in after.get("mismatches", [])][:5] if not kept else []}
+    on_event(result)
+    return result
+
+
 # ---------- cal: the 1970s Unix calendar program ----------
 
 CAL_COPY_RULES = (
