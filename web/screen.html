@@ -1,1 +1,781 @@
-<!-- Big screen: preview, thumbnails, rules, score (Ali). -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Clean Room · Screen</title>
+<style>
+  :root {
+    --bg: #080b0f;
+    --panel: #10151c;
+    --panel-2: #141b24;
+    --line: #1f2935;
+    --line-bright: #2e3d4d;
+    --ink: #edf2f9;
+    --muted: #8492a3;
+    --amber: #ffb04a;
+    --mint: #45d483;
+    --red: #ff5f57;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--sans);
+    background:
+      radial-gradient(1000px 620px at 78% -14%, rgba(255, 176, 74, .09), transparent 62%),
+      radial-gradient(860px 560px at -6% 106%, rgba(92, 200, 215, .06), transparent 58%),
+      var(--bg);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, .02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, .02) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse at 50% 14%, #000, transparent 78%);
+    mask-image: radial-gradient(ellipse at 50% 14%, #000, transparent 78%);
+  }
+  .shell {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    max-width: 1920px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  /* header */
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 14px 26px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(8, 11, 15, .7);
+    backdrop-filter: blur(8px);
+  }
+  .brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+  .mark { width: 32px; height: 32px; color: var(--amber); flex: 0 0 auto; }
+  .brand h1 {
+    margin: 0;
+    font: 650 clamp(15px, 1.3vw, 20px)/1 var(--sans);
+    letter-spacing: .22em;
+    text-transform: uppercase;
+  }
+  .brand p {
+    margin: 6px 0 0;
+    font: 500 clamp(9px, .68vw, 11px)/1.3 var(--mono);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .bar-right { display: flex; align-items: center; gap: 16px; min-width: 0; }
+  .live {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px;
+    border: 1px solid rgba(255, 95, 87, .32);
+    border-radius: 999px;
+    background: rgba(255, 95, 87, .07);
+    font: 600 10px/1 var(--mono);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: #ffd6d3;
+  }
+  .live i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--red);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .session {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 11px/1 var(--mono);
+    color: var(--muted);
+  }
+  .clock {
+    font: 500 clamp(13px, 1vw, 17px)/1 var(--mono);
+    color: #c3cfdd;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* main */
+  .main {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.52fr) minmax(360px, .82fr);
+    gap: 20px;
+    padding: 18px 26px;
+  }
+  .stage {
+    position: relative;
+    margin: 0;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: #04070a;
+  }
+  .stage img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #04070a;
+  }
+  .stage.suspect { border-color: rgba(255, 95, 87, .45); }
+  .brackets span {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border-color: rgba(255, 176, 74, .5);
+    border-style: solid;
+    border-width: 0;
+    pointer-events: none;
+  }
+  .brackets span:nth-child(1) { top: 14px; left: 14px; border-top-width: 1px; border-left-width: 1px; border-top-left-radius: 4px; }
+  .brackets span:nth-child(2) { top: 14px; right: 14px; border-top-width: 1px; border-right-width: 1px; border-top-right-radius: 4px; }
+  .brackets span:nth-child(3) { bottom: 14px; left: 14px; border-bottom-width: 1px; border-left-width: 1px; border-bottom-left-radius: 4px; }
+  .brackets span:nth-child(4) { bottom: 14px; right: 14px; border-bottom-width: 1px; border-right-width: 1px; border-bottom-right-radius: 4px; }
+  .stage-top {
+    position: absolute;
+    top: 16px;
+    left: 18px;
+    right: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .cam, .lines, .reading {
+    padding: 5px 9px;
+    border-radius: 6px;
+    background: rgba(4, 7, 10, .66);
+    font: 500 10px/1 var(--mono);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+  .cam { color: #d4dee9; }
+  .lines { color: var(--muted); }
+  .reading { margin-left: auto; color: var(--amber); }
+  .reading[hidden] { display: none; }
+  .nosignal {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 8px;
+    text-align: center;
+    background: rgba(4, 7, 10, .6);
+  }
+  .nosignal[hidden] { display: none; }
+  .nosignal b { font: 600 14px/1 var(--mono); letter-spacing: .26em; text-transform: uppercase; color: var(--red); }
+  .nosignal span { font: 11px/1.4 var(--mono); color: var(--muted); }
+
+  .tap {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: clamp(12px, 1.4vw, 22px);
+    padding: 54px clamp(16px, 1.8vw, 26px) clamp(14px, 1.4vw, 20px);
+    background: linear-gradient(transparent, rgba(3, 5, 8, .94) 62%);
+  }
+  .tap-key {
+    min-width: 44px;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 176, 74, .4);
+    border-radius: 9px;
+    background: rgba(255, 176, 74, .1);
+    text-align: center;
+    font: 650 clamp(13px, 1.1vw, 17px)/1 var(--mono);
+    color: var(--amber);
+  }
+  .tap-display {
+    font: 600 clamp(30px, 3.4vw, 58px)/.95 var(--mono);
+    letter-spacing: -.025em;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .stage.suspect .tap-display { color: #ffb3ae; }
+  .tap-meta {
+    margin-left: auto;
+    text-align: right;
+    font: 10.5px/1.5 var(--mono);
+    letter-spacing: .03em;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    font: 600 9px/1.3 var(--mono);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .badge.bad { color: #ffd0cd; border: 1px solid rgba(255, 95, 87, .5); background: rgba(255, 95, 87, .12); }
+  .badge[hidden] { display: none; }
+
+  /* side */
+  .side { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .score-card {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(14px, 1.6vw, 24px);
+    padding: clamp(14px, 1.4vw, 20px);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  }
+  .ring { position: relative; width: clamp(104px, 9vw, 140px); height: clamp(104px, 9vw, 140px); }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 7; }
+  .rail { stroke: #1b2531; }
+  .value {
+    stroke: var(--line-bright);
+    stroke-linecap: round;
+    stroke-dasharray: 0 100;
+    transition: stroke-dasharray .55s ease, stroke .3s ease;
+  }
+  .ring-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 2px;
+    padding-top: 4%;
+    font: 650 clamp(26px, 2.5vw, 42px)/1 var(--mono);
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .ring-num small { font-size: .38em; color: var(--muted); letter-spacing: 0; }
+  .ring-num small[hidden] { display: none; }
+  .score-copy h2 {
+    margin: 0;
+    font: 600 10px/1 var(--mono);
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .score-copy > p {
+    margin: 7px 0 0;
+    font: 11.5px/1.4 var(--mono);
+    color: #b8c5d3;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 13px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .stats dt {
+    font: 500 8.5px/1 var(--mono);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .stats dd {
+    margin: 5px 0 0;
+    font: 600 clamp(16px, 1.5vw, 22px)/1 var(--mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rules {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: clamp(13px, 1.3vw, 18px);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--panel);
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-bright) transparent;
+  }
+  .rules h2 {
+    margin: 0 0 12px;
+    font: 600 10px/1 var(--mono);
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .rules ol {
+    display: grid;
+    gap: clamp(8px, 1.35vh, 15px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: rule;
+  }
+  .rules li {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 10px;
+    align-items: baseline;
+  }
+  .rules li span {
+    font: 600 clamp(9px, .72vw, 11px)/1 var(--mono);
+    letter-spacing: .04em;
+    color: var(--amber);
+  }
+  .rules p {
+    margin: 0;
+    font: 450 clamp(12px, 1.02vw, 16.5px)/1.45 var(--sans);
+    color: #c6d2e0;
+    text-wrap: pretty;
+  }
+
+  /* footer strip */
+  .strip {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    height: clamp(118px, 15vh, 176px);
+    padding: 10px 26px 12px;
+    border-top: 1px solid var(--line);
+    background: rgba(10, 14, 19, .82);
+  }
+  .strip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .strip-head h2 {
+    margin: 0;
+    font: 600 10px/1 var(--mono);
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .strip-head span { font: 10px/1 var(--mono); color: var(--muted); }
+  .thumbs {
+    display: flex;
+    gap: 10px;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-bright) transparent;
+  }
+  .thumbs::-webkit-scrollbar { height: 6px; }
+  .thumbs::-webkit-scrollbar-thumb { background: var(--line-bright); border-radius: 3px; }
+  .empty { margin: auto; font: 11.5px/1.4 var(--mono); color: rgba(132, 146, 163, .75); }
+  .thumb {
+    position: relative;
+    flex: 0 0 auto;
+    width: clamp(118px, 10.5vw, 172px);
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #070a0e;
+    animation: in .22s ease-out;
+  }
+  .thumb img { display: block; width: 100%; height: clamp(58px, 7.4vh, 98px); object-fit: cover; }
+  .thumb .noimg { height: clamp(58px, 7.4vh, 98px); background: repeating-linear-gradient(135deg, #10161e, #10161e 6px, #0b1016 6px, #0b1016 12px); }
+  .thumb .cap {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 5px;
+    padding: 5px 7px 6px;
+    font: 500 10.5px/1.2 var(--mono);
+    color: var(--muted);
+  }
+  .thumb .cap b { font-size: 11.5px; font-weight: 700; color: var(--ink); }
+  .thumb .cap span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .thumb .s {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, .7);
+    font: 9px/1.4 var(--mono);
+    color: #cfd8e3;
+  }
+  .thumb.suspect { border-color: rgba(255, 95, 87, .6); }
+  .thumb.suspect::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    border-width: 0 15px 15px 0;
+    border-style: solid;
+    border-color: transparent var(--red) transparent transparent;
+  }
+  .thumb.deleted { opacity: .4; }
+  .thumb.deleted::after {
+    content: "UNDONE";
+    position: absolute;
+    inset: 0 0 27px;
+    display: grid;
+    place-items: center;
+    font: 700 9px/1 var(--mono);
+    letter-spacing: .18em;
+    color: #fff;
+    background: rgba(8, 11, 15, .55);
+  }
+
+  .flash {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: #dfe9f4;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .flash.go { animation: flash .3s ease-out; }
+  @keyframes flash { 0% { opacity: .34; } 100% { opacity: 0; } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  @keyframes in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  @media (max-width: 1100px) {
+    body { overflow: auto; }
+    .shell { height: auto; min-height: 100vh; }
+    .main { grid-template-columns: 1fr; }
+    .stage { aspect-ratio: 4 / 3; }
+    .strip { height: auto; min-height: 140px; }
+    .clock, .session { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="flash" id="flash" aria-hidden="true"></div>
+
+<div class="shell">
+  <header class="bar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16" />
+        <circle cx="12" cy="12" r="3.4" />
+      </svg>
+      <div>
+        <h1>Clean Room</h1>
+        <p>An AI rebuilds software by watching it</p>
+      </div>
+    </div>
+    <div class="bar-right">
+      <span class="live"><i></i>Live</span>
+      <span class="session" id="session" title="Trace file">no session</span>
+      <time class="clock" id="clock">--:--:--</time>
+    </div>
+  </header>
+
+  <main class="main">
+    <figure class="stage" id="stage">
+      <img id="preview" src="/preview.mjpg" alt="Live camera view of the calculator display" />
+      <div class="brackets" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div class="stage-top">
+        <span class="cam">Cam 01</span>
+        <span class="lines" id="lineCount">0 lines</span>
+        <span class="reading" id="reading" hidden>Reading…</span>
+      </div>
+      <div class="nosignal" id="nosignal" hidden>
+        <b>No signal</b>
+        <span>waiting for the camera</span>
+      </div>
+      <figcaption class="tap">
+        <span class="tap-key" id="tapKey">—</span>
+        <span class="tap-display" id="tapDisplay">0</span>
+        <div class="tap-meta">
+          <span id="tapMeta">waiting for the first tap</span>
+          <span class="badge bad" id="tapSuspect" hidden>Suspect</span>
+        </div>
+      </figcaption>
+    </figure>
+
+    <aside class="side">
+      <section class="score-card" aria-label="Trace score">
+        <div class="ring">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="rail" cx="60" cy="60" r="52" pathLength="100"></circle>
+            <circle class="value" id="ring" cx="60" cy="60" r="52" pathLength="100"></circle>
+          </svg>
+          <div class="ring-num"><span id="score">—</span><small id="scorePct" hidden>%</small></div>
+        </div>
+        <div class="score-copy">
+          <h2>Score</h2>
+          <p id="scoreNote">waiting for the first tap</p>
+          <dl class="stats">
+            <div><dt>Tests</dt><dd id="statTests">0</dd></div>
+            <div><dt>Taps</dt><dd id="statTaps">0</dd></div>
+            <div><dt>Suspect</dt><dd id="statSuspect">0</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="rules" id="rules" aria-labelledby="rulesTitle">
+        <h2 id="rulesTitle">The rules</h2>
+        <ol>
+          <li><span>01</span><p>The machine only sees the trace — never the calculator's source.</p></li>
+          <li><span>02</span><p>One tap, one line: seq, test, key, display.</p></li>
+          <li><span>03</span><p>AC starts a new test.</p></li>
+          <li><span>04</span><p>A suspect line is a misread. It stays visible.</p></li>
+          <li><span>05</span><p>Undo marks a line deleted. Nothing is erased.</p></li>
+        </ol>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="strip">
+    <div class="strip-head">
+      <h2>Taps</h2>
+      <span id="stripNote">0 captures</span>
+    </div>
+    <div class="thumbs" id="thumbs">
+      <p class="empty" id="empty">Waiting for the first tap.</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const thumbs = $("thumbs");
+  const stage = $("stage");
+  const preview = $("preview");
+  const state = { trace: [], lastSeq: 0, lastModel: null };
+  let refreshTimer = 0;
+
+  function prettyKey(key) {
+    return key === "+/-" ? "+/−" : key;
+  }
+
+  function renderScore() {
+    const live = state.trace.filter((line) => !line.deleted);
+    const clean = live.filter((line) => !line.suspect).length;
+    const suspect = live.length - clean;
+    const tests = new Set(live.map((line) => line.test)).size;
+    const pct = live.length ? Math.round((clean / live.length) * 100) : null;
+
+    $("statTests").textContent = String(tests);
+    $("statTaps").textContent = String(live.length);
+    $("statSuspect").textContent = String(suspect);
+    $("lineCount").textContent = state.trace.length + (state.trace.length === 1 ? " line" : " lines");
+
+    const ring = $("ring");
+    if (pct === null) {
+      $("score").textContent = "—";
+      $("scorePct").hidden = true;
+      $("scoreNote").textContent = "waiting for the first tap";
+      ring.style.strokeDasharray = "0 100";
+      ring.style.stroke = "var(--line-bright)";
+      return;
+    }
+
+    $("score").textContent = String(pct);
+    $("scorePct").hidden = false;
+    $("scoreNote").textContent = clean + " clean of " + live.length + (live.length === 1 ? " tap" : " taps");
+    ring.style.strokeDasharray = pct + " 100";
+    ring.style.stroke = pct >= 90 ? "var(--mint)" : pct >= 60 ? "var(--amber)" : "var(--red)";
+  }
+
+  function renderTap(line, model) {
+    state.lastSeq = line.seq;
+    $("tapKey").textContent = prettyKey(line.key);
+    $("tapDisplay").textContent = line.display === null || line.display === undefined ? "—" : line.display;
+    const bits = [];
+    if (model) bits.push(model);
+    bits.push("seq " + line.seq, "test " + line.test);
+    $("tapMeta").textContent = bits.join(" · ");
+    $("tapSuspect").hidden = !line.suspect;
+    stage.classList.toggle("suspect", Boolean(line.suspect));
+  }
+
+  function addThumb(thumb, line) {
+    const card = document.createElement("figure");
+    card.className = "thumb" + (line.suspect ? " suspect" : "") + (line.deleted ? " deleted" : "");
+    card.dataset.seq = String(line.seq);
+
+    if (thumb) {
+      const img = document.createElement("img");
+      img.src = "data:image/jpeg;base64," + thumb;
+      img.alt = "Display after " + prettyKey(line.key);
+      card.appendChild(img);
+    } else {
+      const blank = document.createElement("div");
+      blank.className = "noimg";
+      card.appendChild(blank);
+    }
+
+    const seq = document.createElement("span");
+    seq.className = "s";
+    seq.textContent = "#" + line.seq;
+
+    const cap = document.createElement("figcaption");
+    cap.className = "cap";
+    const key = document.createElement("b");
+    key.textContent = prettyKey(line.key);
+    const value = document.createElement("span");
+    value.textContent = line.display === null || line.display === undefined ? "—" : line.display;
+    cap.append(key, value);
+    card.append(seq, cap);
+
+    const empty = $("empty");
+    if (empty) empty.remove();
+    thumbs.prepend(card);
+    while (thumbs.querySelectorAll(".thumb").length > 16) {
+      const cards = thumbs.querySelectorAll(".thumb");
+      cards[cards.length - 1].remove();
+    }
+    $("stripNote").textContent = thumbs.querySelectorAll(".thumb").length + " captures";
+  }
+
+  function markUndone(line) {
+    const item = state.trace.find((candidate) => candidate.seq === line.seq);
+    if (item) item.deleted = true;
+    const card = thumbs.querySelector('[data-seq="' + line.seq + '"]');
+    if (card) card.classList.add("deleted");
+    renderScore();
+  }
+
+  function flash() {
+    const el = $("flash");
+    el.classList.remove("go");
+    void el.offsetWidth;
+    el.classList.add("go");
+  }
+
+  function setBusy(busy) {
+    $("reading").hidden = !busy;
+  }
+
+  async function refreshTrace() {
+    clearTimeout(refreshTimer);
+    try {
+      const response = await fetch("/trace", { cache: "no-store" });
+      if (!response.ok) throw new Error("trace " + response.status);
+      const data = await response.json();
+      state.trace = Array.isArray(data.lines) ? data.lines : [];
+      $("session").textContent = data.path || "no session";
+      $("session").title = data.path || "Trace file";
+      renderScore();
+      setBusy(Boolean(data.busy));
+      const last = state.trace.filter((line) => !line.deleted).pop();
+      if (last) renderTap(last, last.seq === state.lastSeq ? state.lastModel : null);
+    } catch {
+      /* the event stream owns liveness; keep the last known score */
+    }
+  }
+
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(refreshTrace, 400);
+  }
+
+  const source = new EventSource("/events");
+  source.addEventListener("state", (event) => {
+    setBusy(Boolean(JSON.parse(event.data).busy));
+    scheduleRefresh();
+  });
+
+  source.addEventListener("capture", (event) => {
+    const data = JSON.parse(event.data);
+    const line = data.line;
+    state.lastModel = data.model || null;
+    if (!state.trace.some((candidate) => candidate.seq === line.seq)) state.trace.push(line);
+    renderTap(line, state.lastModel);
+    addThumb(data.thumb, line);
+    renderScore();
+    flash();
+    scheduleRefresh();
+  });
+
+  source.addEventListener("undo", (event) => {
+    markUndone(JSON.parse(event.data).line);
+    scheduleRefresh();
+  });
+
+  source.addEventListener("session", (event) => {
+    const data = JSON.parse(event.data);
+    $("session").textContent = data.path || "no session";
+    state.trace = [];
+    for (const card of thumbs.querySelectorAll(".thumb")) card.remove();
+    if (!$("empty")) {
+      const p = document.createElement("p");
+      p.className = "empty";
+      p.id = "empty";
+      p.textContent = "Waiting for the first tap.";
+      thumbs.appendChild(p);
+    }
+    $("stripNote").textContent = "0 captures";
+    $("tapKey").textContent = "—";
+    $("tapDisplay").textContent = "0";
+    $("tapMeta").textContent = "waiting for the first tap";
+    $("tapSuspect").hidden = true;
+    stage.classList.remove("suspect");
+    state.lastSeq = 0;
+    state.lastModel = null;
+    renderScore();
+  });
+
+  let previewTimer = 0;
+
+  function watchPreview() {
+    clearTimeout(previewTimer);
+    if (preview.naturalWidth === 0) {
+      $("nosignal").hidden = false;
+      previewTimer = setTimeout(() => {
+        preview.src = "/preview.mjpg?t=" + Date.now();
+        watchPreview();
+      }, 3000);
+    }
+  }
+
+  preview.addEventListener("load", () => {
+    $("nosignal").hidden = true;
+    clearTimeout(previewTimer);
+  });
+  preview.addEventListener("error", () => {
+    $("nosignal").hidden = false;
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      preview.src = "/preview.mjpg?t=" + Date.now();
+      watchPreview();
+    }, 2500);
+  });
+  setTimeout(watchPreview, 4500);
+
+  function tick() {
+    $("clock").textContent = new Date().toLocaleTimeString([], { hour12: false });
+  }
+
+  tick();
+  setInterval(tick, 1000);
+  refreshTrace();
+  setInterval(refreshTrace, 3000);
+})();
+</script>
+</body>
+</html>
