@@ -3,6 +3,12 @@
 One daemon thread owns the capture device and keeps only the newest frame, so a
 tap never waits on the phone camera and the preview can never lag behind the
 display. The capture loop reads `latest()`; the browser reads `mjpeg_frames()`.
+
+A capture `read()` can block forever (phone asleep, USB unplugged mid-read). The
+reader thread is therefore disposable and a watchdog owns failure/reconnect: if
+no fresh frame arrives within FRAME_GRACE, the old reader is abandoned, one
+reconnect is attempted, and a failed retry clears the frame so `latest()` raises
+instead of serving the last good one.
 """
 from __future__ import annotations
 
@@ -15,7 +21,7 @@ import cv2
 PREVIEW_WIDTH = 720  # a monitor feed, not the evidence we send the reader
 PREVIEW_FPS = 15
 PREVIEW_QUALITY = 70
-FRAME_GRACE = 2.0  # seconds of failed reads before latest() calls it dead
+FRAME_GRACE = 2.0  # seconds without a fresh frame before latest() calls it dead
 BLACK_LEVEL = 8  # a frame this dark is a covered/closed camera, not evidence
 
 
@@ -34,7 +40,7 @@ class CameraError(RuntimeError):
 
 
 class Camera:
-    """A capture device drained by one thread; readers always get the newest frame."""
+    """A capture device drained by one disposable reader; readers always get the newest frame."""
 
     def __init__(self, capture, index=None):
         self.index = index
@@ -44,11 +50,19 @@ class Camera:
         self._frame = None
         self._seq = 0
         self._error = None
+        self._reason = None
         self._reconnect_used = False
         self._stop = threading.Event()
-        self._thread = threading.Thread(target=self._run, name=f"camera-{index}", daemon=True)
+        self._generation = 0
+        self._last_frame_at = time.monotonic()
+        self._thread = threading.Thread(target=self._watch, name=f"camera-{index}", daemon=True)
 
     def start(self):
+        with self._lock:
+            self._last_frame_at = time.monotonic()
+            capture = self._capture
+            generation = self._generation
+        self._start_reader(capture, generation)
         self._thread.start()
         return self
 
@@ -56,11 +70,23 @@ class Camera:
     def is_open(self):
         return not self._closed
 
-    def _run(self):
-        failing_since = None
+    def _start_reader(self, capture, generation):
+        thread = threading.Thread(
+            target=self._read_loop,
+            args=(capture, generation),
+            name=f"camera-{self.index}-read-{generation}",
+            daemon=True,
+        )
+        thread.start()
+
+    def _read_loop(self, capture, generation):
+        """Drain one capture generation. A newer generation makes this thread stop."""
         while not self._stop.is_set():
+            with self._lock:
+                if generation != self._generation or self._error is not None:
+                    return
             try:
-                ok, frame = self._capture.read()
+                ok, frame = capture.read()
             except Exception as e:  # unplugged phone, device reset, ...
                 ok, frame = False, None
                 reason = f"{type(e).__name__}: {e}"
@@ -72,38 +98,53 @@ class Camera:
                 else:
                     reason = None
 
-            if reason is not None:
-                failing_since = failing_since if failing_since is not None else time.monotonic()
-                if time.monotonic() - failing_since >= FRAME_GRACE:
-                    if self._stop.is_set():
-                        break
-                    if not self._reconnect_used:
-                        # One retry per failure episode: unplug/replug, or a phone that
-                        # went to sleep, should not leave a stale frame on the preview.
-                        self._reconnect_used = True
-                        if self._reconnect():
-                            failing_since = None
-                            continue
-                    else:
-                        self._fail(reason)
-                self._stop.wait(0.05)
-                continue
-
-            failing_since = None
             with self._lock:
-                self._frame = frame
-                self._seq += 1
-                self._error = None
-                self._reconnect_used = False
+                if generation != self._generation or self._error is not None:
+                    return
+                if reason is not None:
+                    self._reason = reason
+                else:
+                    self._frame = frame
+                    self._seq += 1
+                    self._last_frame_at = time.monotonic()
+                    self._reason = None
+                    self._reconnect_used = False
+
+            if reason is not None:
+                self._stop.wait(0.05)
+
+    def _watch(self):
+        """Fail closed when frames stop, even if the reader is stuck inside read()."""
+        while not self._stop.wait(0.02):
+            with self._lock:
+                if self._error is not None:
+                    return
+                if time.monotonic() - self._last_frame_at < FRAME_GRACE:
+                    continue
+                reason = self._reason or (
+                    "camera stopped returning frames" if self._frame is not None
+                    else "camera produced no frames"
+                )
+                retry = not self._reconnect_used
+                if retry:
+                    self._reconnect_used = True
+            if retry:
+                if self._reconnect():
+                    continue
+                return
+            self._fail(reason)
+            return
 
     def _fail(self, reason):
         """Make latest() raise instead of serving the frame that is no longer live."""
         with self._lock:
             self._error = reason
             self._frame = None
+            self._reason = reason
+            self._generation += 1  # any read still in flight is now stale
 
     def _reconnect(self):
-        """Open the capture device once more; return False if the retry failed."""
+        """Open the capture device once more, then read it from a fresh thread."""
         old = self._capture
         try:
             new = _open_capture(self.index)
@@ -116,9 +157,18 @@ class Camera:
             self._fail("camera reconnect failed: camera did not open")
             return False
         with self._lock:
+            if self._stop.is_set() or self._error is not None:
+                new.release()
+                return False
             self._capture = new
+            self._generation += 1
+            generation = self._generation
+            self._frame = None  # fail closed while the retry warms up
+            self._reason = None
+            self._last_frame_at = time.monotonic()
         if new is not old:
             old.release()
+        self._start_reader(new, generation)
         return True
 
     def snapshot(self):
@@ -142,7 +192,9 @@ class Camera:
         self._stop.set()
         if self._thread.is_alive() and self._thread is not threading.current_thread():
             self._thread.join(timeout=1.0)
-        self._capture.release()
+        with self._lock:
+            capture = self._capture
+        capture.release()
 
 
 def _open_capture(index):

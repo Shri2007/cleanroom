@@ -14,6 +14,7 @@ import json
 import os
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -127,7 +128,7 @@ class FakeCapture:
     def read(self):
         self.reads += 1
         time.sleep(0.002)  # behave roughly like a camera, do not spin hot
-        return True, np.full((48, 64, 3), self.reads % 255, np.uint8)
+        return True, np.full((48, 64, 3), 128 + self.reads % 100, np.uint8)
 
     def release(self):
         self.released = True
@@ -157,6 +158,31 @@ class ScriptedCapture:
         self.released = True
 
 
+class BlockingCapture:
+    """Returns one good frame, then blocks inside read() like a slept phone."""
+
+    def __init__(self, frame):
+        self.frame = frame
+        self.reads = 0
+        self.released = False
+        self._unblock = threading.Event()
+
+    def isOpened(self):
+        return True
+
+    def read(self):
+        self.reads += 1
+        if self.reads == 1:
+            time.sleep(0.002)
+            return True, self.frame
+        self._unblock.wait()
+        return False, None
+
+    def release(self):
+        self.released = True
+        self._unblock.set()
+
+
 class CameraTest(unittest.TestCase):
     def setUp(self):
         camera.close()
@@ -181,7 +207,7 @@ class CameraTest(unittest.TestCase):
             return remaining.pop(0) if remaining else ScriptedCapture(None, opened=False)
 
         camera._open_capture = opener
-        camera.open(0)
+        self.cam = camera.open(0)
         return calls, remaining
 
     def wait_for_frame(self, timeout=2.0):
@@ -283,6 +309,29 @@ class CameraTest(unittest.TestCase):
         self.assertEqual(calls, [0, 0])
         self.assertEqual(remaining, [])
         self.assertTrue(first.released)
+
+    def test_blocked_read_after_good_frame_fails_closed_after_one_reconnect(self):
+        """A read that never returns must not leave the last good frame visible."""
+        camera.FRAME_GRACE = 0.25  # long enough to observe the first frame, short for the test
+        good = np.full((48, 64, 3), 128, np.uint8)
+        first = BlockingCapture(good)
+        retry = ScriptedCapture(good, opened=False)
+        calls, remaining = self.open_scripted(first, retry)
+
+        self.assertEqual(self.wait_for_frame().shape, (48, 64, 3))
+        self.assertGreaterEqual(first.reads, 2)  # the second read is the one stuck in read()
+
+        error = self.wait_for_camera_error(contains="camera")
+        self.assertIn("camera", str(error).lower())
+        self.assertEqual(calls, [0, 0])  # initial open + exactly one reconnect attempt
+        self.assertEqual(remaining, [])
+        self.assertTrue(retry.released)
+
+        # The old frame is gone, not merely hidden behind the error.
+        with self.assertRaises(camera.CameraError):
+            camera.latest()
+        self.assertIsNone(self.cam.snapshot()[0])
+        first.release()
 
 
 class ASGIClient:
