@@ -212,6 +212,24 @@ async def brain_run(body: BrainRun | None = None):
     return {"started": True, "trace": name}
 
 
+@app.post("/brain/pick_test")
+async def brain_pick_test():
+    """Ask the brain for one key sequence that would confirm a guessed rule. Shown on screen as `pick_test`."""
+    versions = brain.load_history().get("calc", [])
+    if not versions:
+        raise HTTPException(400, "run the brain first: there are no rules yet")
+    rules = versions[-1]["rules"]
+    try:
+        picked = await asyncio.to_thread(brain.pick_test, rules)
+    except Exception as e:
+        raise HTTPException(502, f"brain could not pick a test: {type(e).__name__}: {e}"[:300])
+    rule = next((r for r in rules if r["id"] == str(picked.get("rule_id"))), None)
+    result = {"rule_id": picked.get("rule_id"), "instruction": str(picked.get("instruction", ""))[:120],
+              "rule": rule["rule"] if rule else None}
+    emit("pick_test", result)
+    return result
+
+
 @app.get("/scores")
 async def scores():
     return brain.load_history()

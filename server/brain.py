@@ -170,7 +170,8 @@ _SCORER = r"""
 const vm = require('node:vm');
 let buf = '';
 process.stdin.on('data', d => buf += d).on('end', () => {
-  const {code, lines} = JSON.parse(buf);
+  const {code, lines, target} = JSON.parse(buf);
+  if (target === 'cal') return scoreCal(code, lines);
   const fields = ['display', 'expression', 'clear_label', 'active_op'];
   const byTest = new Map();
   for (const l of lines) { if (!byTest.has(l.test)) byTest.set(l.test, []); byTest.get(l.test).push(l); }
@@ -201,13 +202,36 @@ process.stdin.on('data', d => buf += d).on('end', () => {
   process.stdout.write(JSON.stringify({match_pct: total ? Math.round(10000 * matched / total) / 100 : 0,
     matched, total, tests, mismatches}));
 });
+
+// cal: one line per (month, year); Cal.run(...args) must equal the output exactly.
+function scoreCal(code, lines) {
+  let matched = 0; const tests = [], mismatches = [];
+  let ctx = null, loadError = null;
+  try {
+    ctx = vm.createContext({}, {codeGeneration: {strings: false, wasm: false}});
+    vm.runInContext(code, ctx, {timeout: 1000});
+  } catch (e) { loadError = String(e.message || e); }
+  for (const l of lines) {
+    let got;
+    try {
+      if (loadError) throw new Error(loadError);
+      ctx.args = l.args;
+      got = vm.runInContext('String(Cal.run(args[0], args[1]))', ctx, {timeout: 500});
+    } catch (e) { got = 'ERROR: ' + String(e.message || e); }
+    const pass = got === l.output;
+    if (pass) matched++; else mismatches.push({test: l.test, seq: l.seq, args: l.args, expected: l.output, got});
+    tests.push({test: l.test, pass});
+  }
+  process.stdout.write(JSON.stringify({match_pct: lines.length ? Math.round(10000 * matched / lines.length) / 100 : 0,
+    matched, total: lines.length, tests, mismatches}));
+}
 """
 
 
-def _score_standin(code, lines):
+def _score_standin(code, lines, target="calc"):
     try:
         result = subprocess.run(["node", "--permission", "-e", _SCORER],
-                                input=json.dumps({"code": code, "lines": lines}), capture_output=True,
+                                input=json.dumps({"code": code, "lines": lines, "target": target}), capture_output=True,
                                 text=True, timeout=2, env={"PATH": os.environ.get("PATH", "")})
     except subprocess.TimeoutExpired:
         return {"error": "timeout", "match_pct": 0, "mismatches": []}
@@ -288,6 +312,123 @@ def run_loop(trace_path, on_event=print):
     on_event({"step": "done", "best_version": best["version"], "train_pct": best["train"]["match_pct"],
               "held_pct": best["held"]["match_pct"]})
     return best
+
+
+# ---------- cal: the 1970s Unix calendar program ----------
+
+CAL_COPY_RULES = (
+    "Write ONE plain JavaScript file that defines:\n"
+    "globalThis.Cal = { run(month, year) { return \"<exact text>\"; } };\n"
+    "month is 1-12, year 1-9999. Return EXACTLY the text the program prints for that month: same header "
+    "centering, same column spacing, same trailing spaces on every line, same number of lines, joined with \\n. "
+    "Output is compared character by character. No import, require, process, fetch, timers, eval, Function or "
+    "Date. Compute weekdays yourself. Return only the code.")
+
+
+def normalize_cal(lines):
+    """Contract cal lines ({args, output}) or Ali's cal_runner lines ({key: "9 1752", display})."""
+    out = []
+    for l in lines:
+        if l.get("deleted"):
+            continue
+        args = l.get("args") or [int(x) for x in str(l["key"]).split()]
+        output = l["output"] if "output" in l else l["display"]
+        out.append({"seq": l["seq"], "test": l["test"], "args": [int(args[0]), int(args[1])], "output": output})
+    return out
+
+
+def fmt_cal(lines):
+    # json.dumps keeps spaces and newlines visible, which is where the exact-text rules live
+    return "\n".join(json.dumps({"seq": l["seq"], "month_year": l["args"], "output": l["output"]})
+                     for l in lines[-MAX_PROMPT_LINES:])
+
+
+def find_rules_cal(lines):
+    system = (
+        "You reverse-engineer a command-line calendar program from its outputs for (month, year) inputs. Use ONLY "
+        "the evidence. A rule is 'seen' if listed outputs show it directly; anything from general knowledge is "
+        "'guessed'. Return JSON only: "
+        '{"rules": [{"id": "R1", "rule": "...", "status": "seen", "evidence_seq": [3]}]}. '
+        "Cover header format, weekday row, column widths, trailing spaces, line count, month lengths, leap years, "
+        "which weekday a month starts on, and anything unusual in a specific month. 6-12 short rules.")
+    data = json.loads(strip_fences(ask(system, fmt_cal(lines))))
+    rules = data["rules"] if isinstance(data, dict) else data
+    return [{"id": str(r["id"]), "rule": str(r["rule"]),
+             "status": "seen" if r.get("status") == "seen" else "guessed",
+             "evidence_seq": [int(s) for s in r.get("evidence_seq", []) if str(s).isdigit()]}
+            for r in rules]
+
+
+def check_cal_code(text):
+    code = strip_fences(text)
+    if "globalThis.Cal" not in code:
+        raise ValueError("copy does not define globalThis.Cal")
+    if BANNED.search(code):
+        raise ValueError(f"copy uses a banned word: {BANNED.search(code).group(0)}")
+    return code
+
+
+def write_cal_copy(rules, lines):
+    user = f"RULES:\n{json.dumps(rules, ensure_ascii=False)}\n\nEVIDENCE:\n{fmt_cal(lines)}"
+    return check_cal_code(ask("You build a calendar program copy from a spec. " + CAL_COPY_RULES, user))
+
+
+def fix_cal_copy(code, rules, mismatches):
+    user = (f"RULES:\n{json.dumps(rules, ensure_ascii=False)}\n\nCURRENT CODE:\n{code}\n\n"
+            f"MISMATCHES (expected vs got, exact text):\n{json.dumps(mismatches[:6], ensure_ascii=False)}")
+    return check_cal_code(ask("You fix a calendar program copy so its output matches exactly. Return the full new "
+                              "file. " + CAL_COPY_RULES, user))
+
+
+def save_cal_version(version, code, rules, round_no, train, keep):
+    COPIES.mkdir(exist_ok=True)
+    (COPIES / f"cal_v{version}.js").write_text(code)
+    history = load_history()
+    history.setdefault("cal", []).append({
+        "version": version, "round": round_no, "file": f"cal_v{version}.js", "train_pct": train["match_pct"],
+        "held_pct": None, "kept": keep, "rules": rules, "time": time.strftime("%H:%M:%S")})
+    SCORES.write_text(json.dumps(history, indent=1, ensure_ascii=False))
+
+
+def run_cal(lines, on_event=print):
+    """Rebuild cal from TRAINING lines only. The verifier agent scores held-out dates on its own,
+    so held_pct is None here. Returns {best_version, train_pct, held_pct, rules, code}."""
+    lines = normalize_cal(lines)
+    if not lines:
+        raise ValueError("no cal lines to learn from")
+    on_event({"step": "split", "lines": len(lines), "train_tests": sorted({l["test"] for l in lines}),
+              "held_tests": []})
+    first = lines[:max(3, len(lines) // 2)]  # v1 sees half the evidence, so the climb is honest
+    rules = find_rules_cal(first)
+    on_event({"step": "rules", "rules": rules})
+    code = write_cal_copy(rules, first)
+    first_version = max((v["version"] for v in load_history().get("cal", [])), default=0) + 1
+    best = None
+    for round_no in range(MAX_ROUNDS + 1):
+        tr = _score_standin(code, lines, target="cal")
+        improved = best is None or tr["match_pct"] > best["train"]["match_pct"]
+        version = first_version + round_no
+        save_cal_version(version, code, rules, round_no, tr, improved)
+        on_event({"step": "score", "version": version, "train_pct": tr["match_pct"], "held_pct": None,
+                  "kept": improved, "brain": last_brain, "error": tr.get("error")})
+        if improved:
+            best = {"version": version, "code": code, "train": tr, "stale": 0}
+        else:
+            best["stale"] += 1
+        if best["train"]["match_pct"] == 100 or best["stale"] >= 2 or round_no == MAX_ROUNDS:
+            break
+        if round_no == 0:  # after v1, the brain sees every training date
+            rules = find_rules_cal(lines)
+            on_event({"step": "rules", "rules": rules})
+        try:
+            code = fix_cal_copy(best["code"], rules, best["train"]["mismatches"])
+        except (ValueError, json.JSONDecodeError) as e:
+            on_event({"step": "fix_failed", "error": str(e)})
+            break
+    result = {"best_version": best["version"], "train_pct": best["train"]["match_pct"], "held_pct": None,
+              "rules": rules, "code": best["code"]}
+    on_event({"step": "done", **{k: v for k, v in result.items() if k != "code"}})
+    return result
 
 
 if __name__ == "__main__":
