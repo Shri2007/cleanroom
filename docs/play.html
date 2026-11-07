@@ -62,6 +62,8 @@
     transition-property: opacity; transition-duration: 150ms; }
   .badge.show { opacity: 1; }
   .note { position: fixed; inset: auto 0 18px; text-align: center; color: var(--muted); font-size: 14px; }
+  .pill { position: fixed; top: 12px; right: 12px; font: 12px ui-monospace, Menlo, monospace; color: var(--muted);
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); padding: 6px 10px; border-radius: 999px; }
   @media (prefers-reduced-motion: reduce) { .key, .expr, .badge { transition: none; } }
 </style>
 </head>
@@ -75,7 +77,9 @@
 </main>
 <div class="badge" id="badge"></div>
 <div class="note" id="note" hidden></div>
+<button class="pill" id="trace" type="button" hidden aria-label="Copy the recorded trace as JSONL"></button>
 
+<script src="trace_recorder.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>';
@@ -100,6 +104,23 @@ for (const [key, label, style] of LAYOUT) {
   buttons[key] = b;
 }
 
+// ---------- record a trace (trace_recorder.js) ----------
+// Every press is recorded in the shape of traces/sample.jsonl. The pill that exports it stays hidden unless the
+// URL has #trace (or you press "t"), so the page looks the same as before.
+const recorder = globalThis.TraceRecorder ? TraceRecorder.create() : null;
+const tracePill = $('trace');
+const showTrace = () => { tracePill.textContent = 'trace · ' + recorder.size(); };
+const setTraceVisible = on => { tracePill.hidden = !(on && recorder); if (!tracePill.hidden) showTrace(); };
+globalThis.getTrace = () => (recorder ? recorder.export() : '');
+tracePill.addEventListener('click', async () => {
+  const text = recorder.export();
+  try { await navigator.clipboard.writeText(text); tracePill.textContent = 'copied ' + recorder.size() + ' lines'; }
+  catch {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/x-ndjson' })); a.download = 'trace.jsonl'; a.click();
+  }
+});
+
 let ready = false;
 function render() {
   let r = {};
@@ -110,6 +131,7 @@ function render() {
   buttons['AC'].textContent = r.clear_label === 'C' ? 'C' : 'AC';
   for (const op of ['÷', '×', '-', '+']) buttons[op].classList.toggle('on', r.active_op === op);
   fitDisplay();
+  return r;
 }
 function fitDisplay() {
   const d = $('display'), max = d.parentElement.clientWidth - 16;
@@ -121,11 +143,13 @@ function press(key) {
   // "AC" on screen means clear-all; the copy decides what its label shows next
   const sent = key === 'AC' && buttons['AC'].textContent === 'C' ? 'C' : key;
   try { globalThis.Calc.press(sent); } catch (e) { console.warn('copy failed on', sent, e); }
-  render();
+  const reading = render();
+  if (recorder) { recorder.record(sent, reading); if (!tracePill.hidden) showTrace(); }
 }
 addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key === 'v') { $('badge').classList.toggle('show'); return; }
+  if (e.key === 't') { setTraceVisible(tracePill.hidden); return; }
   const key = /^[0-9]$/.test(e.key) ? e.key : KEYBOARD[e.key];
   if (!key) return;
   e.preventDefault();
@@ -163,6 +187,7 @@ async function load() {
   if (!globalThis.Calc) throw new Error('the copy did not define Calc');
   globalThis.Calc.reset();
   ready = true; $('badge').textContent = label; render();
+  if (new URLSearchParams(location.hash.slice(1)).has('trace')) setTraceVisible(true);
   // play.html#keys=5,0,+,1,0,%,= presses keys on load (for screenshots and videos)
   const keys = new URLSearchParams(location.hash.slice(1)).get('keys');
   if (keys) for (const k of keys.split(',')) press(k);
