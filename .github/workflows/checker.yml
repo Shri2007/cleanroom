@@ -1,0 +1,50 @@
+name: Checker and camera
+
+on:
+  push:
+    branches: [main, "freebuff/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checker:
+    name: Node 24 checker tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Show runtimes
+        run: |
+          node --version
+          python --version
+      - name: Run checker tests
+        run: python -m unittest tests.test_checker tests.test_checker_cal tests.test_checker_secrets -v
+
+  camera-operator:
+    name: Node 24 camera + operator test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Show runtimes
+        run: |
+          node --version
+          python --version
+      - name: Install dependencies
+        run: uv sync --frozen --python 3.13
+      - name: Run camera and operator tests
+        run: uv run --frozen python -m unittest tests.test_camera_operator -v
