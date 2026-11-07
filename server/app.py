@@ -22,7 +22,7 @@ from pathlib import Path
 import cv2
 import Quartz
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -64,6 +64,7 @@ async def lifespan(app):
 
 app = FastAPI(title="Clean Room", lifespan=lifespan)
 app.mount("/web", StaticFiles(directory=ROOT / "web"), name="web")
+app.mount("/docs", StaticFiles(directory=ROOT / "docs"), name="docs")  # the phone copy, same files as GitHub Pages
 
 state = {"busy": False, "trace": None, "brain_running": False, "loop": None, "watching": False}
 subscribers = set()
@@ -309,6 +310,37 @@ async def brain_run(body: BrainRun | None = None):
     return {"started": True, "trace": name}
 
 
+def latest_trace_with_lines():
+    """The live session if it has lines, else the newest saved trace that does."""
+    if state["trace"].lines:
+        return state["trace"].path
+    for path in sorted((ROOT / "traces").glob("2*.jsonl"), reverse=True):
+        if path.stat().st_size:
+            return path
+    raise HTTPException(400, "no trace with lines yet")
+
+
+@app.post("/brain/modernize")
+async def brain_modernize():
+    """Rewrite the best copy as clean code and prove it still behaves the same. SSE `modernize` events."""
+    if state["brain_running"]:
+        raise HTTPException(409, "brain is busy")
+    trace_path = latest_trace_with_lines()
+    state["brain_running"] = True
+
+    async def work():
+        try:
+            await asyncio.to_thread(brain.modernize, trace_path, lambda e: emit("modernize", e))
+        except Exception as e:
+            log.exception("modernize failed")
+            emit("modernize", {"step": "failed", "error": f"{type(e).__name__}: {e}"[:300]})
+        finally:
+            state["brain_running"] = False
+
+    asyncio.create_task(work())
+    return {"started": True, "trace": trace_path.name}
+
+
 @app.post("/brain/pick_test")
 async def brain_pick_test():
     """Ask the brain for one key sequence that would confirm a guessed rule. Shown on screen as `pick_test`."""
@@ -391,3 +423,9 @@ async def index():
 @app.get("/screen")
 async def screen():
     return FileResponse(ROOT / "web" / "screen.html")
+
+
+@app.get("/twin")
+async def twin():
+    """"Which one is real?": the phone copy, running the best copy so far. Sits beside the mirror window."""
+    return RedirectResponse("/docs/play.html")

@@ -1,451 +1,173 @@
-<!-- Installable phone page running calc_best.js (Ali). -->
 <!doctype html>
+<!-- The rebuilt calculator: an AI-written copy running in a phone-style shell (Shri).
+     On GitHub Pages it runs the pinned calc_best.js. Served by the Clean Room server (/twin),
+     it runs whichever copy scored best on tests it never saw. No logos, no brand names. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#000000">
-<meta name="description" content="A calculator rebuilt from a trace: every key you press is recorded as a trace line the checker can score.">
-<title>Clean Room Calculator</title>
-<!-- Add to Home Screen on iOS (the manifest below covers Android/desktop). -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Calculator">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Calculator</title>
 <style>
   :root {
-    --bg: #000;
-    --key: #333336;
-    --key-hi: #737375;
-    --fn: #a5a5aa;
-    --fn-hi: #d1d1d6;
-    --op: #ff9f0a;
-    --op-hi: #ffc266;
-    --ink: #fff;
+    --digit: #333335; --digit-on: #737373;
+    --fn: #5c5c5f; --fn-on: #8e8e93;
+    --op: #ff9f0a; --op-on: #fcc78e;
     --muted: #8e8e93;
+    --gap: 14px;
   }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    overscroll-behavior: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .app {
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    padding:
-      calc(env(safe-area-inset-top, 0px) + 10px)
-      calc(env(safe-area-inset-right, 0px) + 14px)
-      calc(env(safe-area-inset-bottom, 0px) + 16px)
-      calc(env(safe-area-inset-left, 0px) + 14px);
-  }
-  .bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    color: var(--muted);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .bar h1 { margin: 0; font-size: 12px; font-weight: 600; }
-  .pill {
-    appearance: none;
-    border: 1px solid #3a3a3c;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--muted);
-    font: inherit;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 7px 12px;
-    cursor: pointer;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .pill:active { background: #1c1c1e; color: var(--ink); }
-  .pill:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-  .screen {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: flex-end;
-    gap: 4px;
-    padding: 18px 6px 22px;
-    min-height: 30vh;
-  }
-  .expr {
-    min-height: 1.2em;
-    color: var(--muted);
-    font-size: clamp(14px, 4vw, 20px);
-    font-variant-numeric: tabular-nums;
-  }
-  .value {
-    max-width: 100%;
-    font-size: clamp(44px, 20vw, 84px);
-    font-weight: 200;
-    line-height: 1.05;
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
-    text-align: right;
-  }
-  .value.small { font-size: clamp(28px, 12vw, 52px); }
-  .pad {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: clamp(10px, 2.6vw, 16px);
-  }
-  .key {
-    appearance: none;
-    border: 0;
-    border-radius: 50%;
-    aspect-ratio: 1;
-    min-height: 62px;
-    font: inherit;
-    font-size: clamp(24px, 7vw, 32px);
-    font-weight: 400;
-    color: var(--ink);
-    background: var(--key);
-    cursor: pointer;
-    touch-action: manipulation;
-    user-select: none;
-    -webkit-user-select: none;
-    transition: background-color 90ms ease-out;
-  }
-  .key:active, .key.hit { background: var(--key-hi); }
-  .key:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-  .key.fn { background: var(--fn); color: #000; font-size: clamp(20px, 6vw, 26px); }
-  .key.fn:active, .key.fn.hit { background: var(--fn-hi); }
-  .key.op { background: var(--op); font-size: clamp(28px, 8vw, 38px); font-weight: 500; }
-  .key.op:active, .key.op.hit { background: var(--op-hi); }
-  .key.op.active { background: #fff; color: var(--op); }
-  .key.zero {
-    grid-column: span 2;
-    border-radius: 999px;
-    text-align: left;
-    padding-left: 26%;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .key { transition: none; }
-  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff;
+    font-family: -apple-system, "SF Pro Display", system-ui, sans-serif; overflow: hidden;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  body { display: grid; place-items: center; }
+
+  .phone { width: min(100vw, 400px); height: min(100dvh, 860px); display: flex; flex-direction: column;
+    justify-content: flex-end; padding: 0 20px max(28px, env(safe-area-inset-bottom)); }
+
+  .screen { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end;
+    padding: 0 8px 18px; min-height: 0; }
+  .expr { color: var(--muted); font-size: 30px; font-weight: 400; height: 38px; line-height: 38px;
+    white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums; transition-property: opacity; transition-duration: 150ms; }
+  .expr:empty { opacity: 0; }
+  .display { font-size: 92px; font-weight: 300; line-height: 1.05; letter-spacing: -0.02em; white-space: nowrap;
+    font-variant-numeric: tabular-nums; max-width: 100%; }
+
+  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); }
+  .key { appearance: none; border: 0; margin: 0; padding: 0; aspect-ratio: 1; border-radius: 50%;
+    display: grid; place-items: center; color: #fff; font: inherit; font-size: 36px; font-weight: 400;
+    background: var(--digit); cursor: pointer;
+    /* fade back slowly on release, like the real thing; light up instantly on press */
+    transition-property: background-color, color; transition-duration: 350ms; transition-timing-function: ease-out; }
+  .key:active, .key.pressed { background: var(--digit-on); transition-duration: 0s; }
+  .key.fn { background: var(--fn); font-size: 30px; font-weight: 500; }
+  .key.fn:active, .key.fn.pressed { background: var(--fn-on); }
+  .key.op { background: var(--op); font-size: 42px; }
+  .key.op:active, .key.op.pressed { background: var(--op-on); }
+  .key.op.on { background: #fff; color: var(--op); }
+  .key svg { width: 34px; height: 34px; }
+  .key:focus-visible { outline: 2px solid rgba(255,255,255,.6); outline-offset: 3px; }
+
+  .badge { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); font: 12px ui-monospace, Menlo, monospace;
+    color: var(--muted); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
+    padding: 6px 10px; border-radius: 999px; opacity: 0; pointer-events: none;
+    transition-property: opacity; transition-duration: 150ms; }
+  .badge.show { opacity: 1; }
+  .note { position: fixed; inset: auto 0 18px; text-align: center; color: var(--muted); font-size: 14px; }
+  @media (prefers-reduced-motion: reduce) { .key, .expr, .badge { transition: none; } }
 </style>
 </head>
 <body>
-<main class="app">
-  <header class="bar">
-    <h1>Clean Room</h1>
-    <!-- Every press below appends one line; this exports them for the checker. -->
-    <button class="pill" type="button" id="export" aria-label="Copy the recorded trace as JSONL">
-      trace &middot; <span id="count">0</span>
-    </button>
-  </header>
-
-  <div class="screen">
+<main class="phone">
+  <div class="screen" aria-live="polite">
     <div class="expr" id="expr"></div>
-    <div class="value" id="value" role="status" aria-live="polite">0</div>
+    <div class="display" id="display">0</div>
   </div>
-
-  <!-- Keypad: the button labels are the trace keys, so what you tap is what gets recorded. -->
-  <div class="pad" id="pad">
-    <button class="key fn" type="button" data-key="AC" id="clear">AC</button>
-    <button class="key fn" type="button" data-key="+/-">+/&minus;</button>
-    <button class="key fn" type="button" data-key="%">%</button>
-    <button class="key op" type="button" data-key="&divide;">&divide;</button>
-
-    <button class="key" type="button" data-key="7">7</button>
-    <button class="key" type="button" data-key="8">8</button>
-    <button class="key" type="button" data-key="9">9</button>
-    <button class="key op" type="button" data-key="&times;">&times;</button>
-
-    <button class="key" type="button" data-key="4">4</button>
-    <button class="key" type="button" data-key="5">5</button>
-    <button class="key" type="button" data-key="6">6</button>
-    <!-- Label is the minus sign, key is the ASCII "-" the contract uses. -->
-    <button class="key op" type="button" data-key="-">&minus;</button>
-
-    <button class="key" type="button" data-key="1">1</button>
-    <button class="key" type="button" data-key="2">2</button>
-    <button class="key" type="button" data-key="3">3</button>
-    <button class="key op" type="button" data-key="+">+</button>
-
-    <button class="key zero" type="button" data-key="0">0</button>
-    <button class="key" type="button" data-key=".">.</button>
-    <button class="key op" type="button" data-key="=">=</button>
-  </div>
+  <div class="keys" id="keys"></div>
 </main>
+<div class="badge" id="badge"></div>
+<div class="note" id="note" hidden></div>
 
-<!-- The copy itself: the same file checker/check.mjs scores against a trace. -->
-<script src="calc_best.js"></script>
 <script>
-(function () {
-  "use strict";
+const $ = id => document.getElementById(id);
+const BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>';
+// [key sent to the copy, label, style]
+const LAYOUT = [
+  ['⌫', BACK, 'fn'], ['AC', 'AC', 'fn'], ['%', '%', 'fn'], ['÷', '÷', 'op'],
+  ['7', '7'], ['8', '8'], ['9', '9'], ['×', '×', 'op'],
+  ['4', '4'], ['5', '5'], ['6', '6'], ['-', '−', 'op'],
+  ['1', '1'], ['2', '2'], ['3', '3'], ['+', '+', 'op'],
+  ['+/-', '+/−', 'fn-digit'], ['0', '0'], ['.', '.'], ['=', '=', 'op'],
+];
+const KEYBOARD = { Enter: '=', '=': '=', Backspace: '⌫', Escape: 'AC', '*': '×', x: '×', '/': '÷', '-': '-', '+': '+', '%': '%', '.': '.', ',': '.' };
+const buttons = {};
 
-  var valueEl = document.getElementById("value");
-  var exprEl = document.getElementById("expr");
-  var padEl = document.getElementById("pad");
-  var countEl = document.getElementById("count");
-  var exportEl = document.getElementById("export");
+for (const [key, label, style] of LAYOUT) {
+  const b = document.createElement('button');
+  b.className = 'key' + (style === 'fn' ? ' fn' : style === 'op' ? ' op' : '');
+  b.innerHTML = label;  // labels are fixed strings above, never data
+  b.setAttribute('aria-label', key === '⌫' ? 'delete' : key === '-' ? 'minus' : key);
+  b.addEventListener('pointerdown', e => { e.preventDefault(); press(key); });
+  $('keys').append(b);
+  buttons[key] = b;
+}
 
-  // The brain's copy contract is globalThis.Calc = { reset(), press(key), render() }.
-  // The shipped copy also exposes createCalculator for checker/check.mjs, so accept
-  // either shape and prefer the brain one: an AI-written copy needs no shim here.
-  var calc = null;
-  if (globalThis.Calc && typeof globalThis.Calc.press === "function" &&
-      typeof globalThis.Calc.render === "function" && typeof globalThis.Calc.reset === "function") {
-    calc = globalThis.Calc;
-  } else if (globalThis.Calc && typeof globalThis.Calc.press === "function") {
-    valueEl.textContent = "copy missing reset()/render()";
-    return;
-  } else if (typeof createCalculator === "function") {
-    var made = createCalculator();
-    calc = {
-      reset: function () {
-        if (typeof made.reset === "function") made.reset();
-        else made.press("AC"); // older createCalculator copies have no reset()
-      },
-      press: function (key) { made.press(key); },
-      render: function () { return made.state(); },
-    };
-  } else {
-    valueEl.textContent = "copy missing";
-    return;
-  }
-
-  // --- trace recording -----------------------------------------------------
-  // One line per press, in the exact shape of traces/sample.jsonl: same fields,
-  // same order, same types (server/trace.py is the contract).
-  var LINE_FIELDS = ["seq", "test", "t", "source", "key", "display",
-                     "expression", "clear_label", "active_op", "suspect", "deleted"];
-  var DIGITS = "0123456789";
-  var MAX_DIGITS = 9; // server/trace.py: the phone display stops accepting digits here
-  var lines = [];
-  var started = null; // set on the first press, so line 1 reads t = 0.0
-
-  // Port of server/trace.py is_suspect: digits must end the display, AC must show 0.
-  function isSuspect(key, display) {
-    if (display === null || display === undefined) return true;
-    var shown = String(display).replace(/,/g, "").replace(/ /g, "");
-    if (DIGITS.indexOf(key) >= 0) {
-      var count = 0;
-      for (var i = 0; i < shown.length; i++) if (DIGITS.indexOf(shown[i]) >= 0) count++;
-      return shown.slice(-1) !== key && count < MAX_DIGITS;
-    }
-    if (key === "AC") return shown !== "0";
-    return false;
-  }
-
-  function record(key, s) {
-    var now = performance.now();
-    if (started === null) started = now;
-    var last = lines.length ? lines[lines.length - 1] : null;
-    lines.push({
-      seq: lines.length + 1,
-      test: !last ? 1 : last.test + (key === "AC" ? 1 : 0), // an AC line opens the next test
-      t: Math.round((now - started) / 100) / 10, // seconds, one decimal like the camera trace
-      source: "screen",
-      key: key,
-      display: s.display,
-      expression: s.expression,
-      clear_label: s.clear_label,
-      active_op: s.active_op,
-      suspect: isSuspect(key, s.display),
-      deleted: false,
-    });
-    countEl.textContent = String(lines.length);
-  }
-
-  // Serialised field by field so the export keeps the sample's field order even
-  // though it is built in the browser; t keeps its decimal place as a number.
-  function toJson(line) {
-    return "{" + LINE_FIELDS.map(function (f) {
-      var v = f === "t" ? line.t.toFixed(1) : JSON.stringify(line[f]);
-      return JSON.stringify(f) + ": " + v;
-    }).join(", ") + "}";
-  }
-
-  function getTrace() {
-    return lines.map(toJson).join("\n") + (lines.length ? "\n" : "");
-  }
-  window.getTrace = getTrace; // for tooling: the JSONL the checker scores
-
-  // --- rendering and input -------------------------------------------------
-
-  function readCalc() {
-    var s = calc.render();
-    if (!s || s.display === null || s.display === undefined) {
-      throw new Error("copy render() returned no display");
-    }
-    return s;
-  }
-
-  function render() {
-    var s = readCalc();
-    valueEl.textContent = s.display;
-    valueEl.classList.toggle("small", String(s.display).length > 8);
-    exprEl.textContent = s.expression || "";
-    // The clear key sends whatever label it is showing — the key a camera
-    // pointed at this phone would read off it.
-    var clearBtn = document.getElementById("clear");
-    var clearLabel = s.clear_label == null ? "AC" : s.clear_label;
-    clearBtn.textContent = clearLabel;
-    clearBtn.dataset.key = clearLabel;
-    var ops = padEl.querySelectorAll(".op");
-    for (var i = 0; i < ops.length; i++) {
-      ops[i].classList.toggle("active", ops[i].dataset.key === s.active_op);
-    }
-  }
-
-  // server/trace.py KEYS: anything else is not a trace key, so it is not pressed
-  // and not recorded (a stray "," must not throw mid-click either).
-  var KEYS = ["AC", "C", ".", "+", "-", "×", "÷", "=", "%", "+/-", "⌫",
-              "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-
-  function tap(key) {
-    if (KEYS.indexOf(key) < 0) return;
-    calc.press(key);
-    record(key, readCalc());
-    render();
-  }
-
-  // Tooling hook: reset the copy and repaint without recording a trace line.
-  window.resetCalc = function () {
-    calc.reset();
-    render();
-  };
-
-  padEl.addEventListener("click", function (e) {
-    var btn = e.target.closest("button[data-key]");
-    if (btn) tap(btn.dataset.key);
-  });
-
-  // Physical keyboard, mapped onto the same keys a trace records.
-  var KEYMAP = {
-    "*": "×", "/": "÷", "x": "×", "X": "×",
-    Enter: "=", "=": "=", Escape: "AC", Backspace: "⌫",
-  };
-  document.addEventListener("keydown", function (e) {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
-    var key = /^[0-9.]$/.test(e.key) ? e.key : KEYMAP[e.key] || (e.key.length === 1 ? e.key : null);
-    if (key === null) return;
-    e.preventDefault();
-    tap(key);
-    var btn = padEl.querySelector('button[data-key="' + (key === "⌫" ? "" : key) + '"]');
-    if (btn) {
-      btn.classList.add("hit");
-      setTimeout(function () { btn.classList.remove("hit"); }, 120);
-    }
-  });
-
-  exportEl.addEventListener("click", function () {
-    var text = getTrace();
-    var done = function (ok) {
-      var label = ok ? "copied " + lines.length + " lines" : "copy failed";
-      exportEl.textContent = label;
-      setTimeout(function () {
-        exportEl.innerHTML = 'trace &middot; <span id="count">' + lines.length + "</span>";
-        countEl = document.getElementById("count");
-      }, 1400);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(legacyCopy(text)); });
-    } else {
-      done(legacyCopy(text));
-    }
-  });
-
-  function legacyCopy(text) {
-    var ta = document.createElement("textarea");
-    ta.value = text;
-    ta.setAttribute("readonly", "");
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    var ok = false;
-    try { ok = document.execCommand("copy"); } catch (err) { ok = false; }
-    document.body.removeChild(ta);
-    return ok;
-  }
-
-  // --- installability -------------------------------------------------------
-  // The manifest is built here rather than shipped as a file so start_url/scope
-  // are absolute for whatever host serves this page (or file://), and so the
-  // icons are real PNGs without a second asset. Inline data URL: no fetch.
-  function rounded(g, x, y, w, h, r) {
-    g.beginPath();
-    if (g.roundRect) g.roundRect(x, y, w, h, r);
-    else g.rect(x, y, w, h);
-    g.fill();
-  }
-
-  function icon(size) {
-    var c = document.createElement("canvas");
-    c.width = c.height = size;
-    var g = c.getContext("2d");
-    var u = size / 192;
-    g.fillStyle = "#000000";
-    g.fillRect(0, 0, size, size);
-    g.fillStyle = "#ff9f0a"; // the display strip
-    rounded(g, 30 * u, 30 * u, 132 * u, 44 * u, 12 * u);
-    var dots = [[54, 116], [96, 116], [138, 116], [54, 158], [96, 158]];
-    g.fillStyle = "#a5a5aa";
-    for (var i = 0; i < dots.length; i++) {
-      g.beginPath();
-      g.arc(dots[i][0] * u, dots[i][1] * u, 15 * u, 0, Math.PI * 2);
-      g.fill();
-    }
-    g.fillStyle = "#ff9f0a"; // the equals key
-    g.beginPath();
-    g.arc(138 * u, 158 * u, 15 * u, 0, Math.PI * 2);
-    g.fill();
-    return c.toDataURL("image/png");
-  }
-
-  try {
-    var manifest = {
-      name: "Clean Room Calculator",
-      short_name: "Calculator",
-      description: "A calculator rebuilt from a trace.",
-      start_url: location.href,
-      scope: new URL("./", location.href).href,
-      display: "standalone",
-      orientation: "portrait",
-      background_color: "#000000",
-      theme_color: "#000000",
-      icons: [
-        { src: icon(192), sizes: "192x192", type: "image/png", purpose: "any" },
-        { src: icon(512), sizes: "512x512", type: "image/png", purpose: "any" },
-      ],
-    };
-    var link = document.createElement("link");
-    link.rel = "manifest";
-    link.href = "data:application/manifest+json;charset=utf-8," +
-      encodeURIComponent(JSON.stringify(manifest));
-    document.head.appendChild(link);
-
-    var apple = document.createElement("link");
-    apple.rel = "apple-touch-icon";
-    apple.href = icon(180);
-    document.head.appendChild(apple);
-  } catch (err) {
-    // No canvas (or no data URLs): the calculator and its trace still work, the
-    // page just won't offer an install prompt.
-  }
-
-  calc.reset();
+let ready = false;
+function render() {
+  let r = {};
+  try { r = globalThis.Calc.render() || {}; } catch (e) { r = { display: 'Error' }; }
+  const display = r.display == null ? '0' : String(r.display);
+  $('display').textContent = display;
+  $('expr').textContent = r.expression == null ? '' : String(r.expression);
+  buttons['AC'].textContent = r.clear_label === 'C' ? 'C' : 'AC';
+  for (const op of ['÷', '×', '-', '+']) buttons[op].classList.toggle('on', r.active_op === op);
+  fitDisplay();
+}
+function fitDisplay() {
+  const d = $('display'), max = d.parentElement.clientWidth - 16;
+  let size = 92; d.style.fontSize = size + 'px';
+  while (d.scrollWidth > max && size > 36) { size -= 4; d.style.fontSize = size + 'px'; }
+}
+function press(key) {
+  if (!ready) return;
+  // "AC" on screen means clear-all; the copy decides what its label shows next
+  const sent = key === 'AC' && buttons['AC'].textContent === 'C' ? 'C' : key;
+  try { globalThis.Calc.press(sent); } catch (e) { console.warn('copy failed on', sent, e); }
   render();
-})();
+}
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'v') { $('badge').classList.toggle('show'); return; }
+  const key = /^[0-9]$/.test(e.key) ? e.key : KEYBOARD[e.key];
+  if (!key) return;
+  e.preventDefault();
+  const b = buttons[key === 'C' ? 'AC' : key];
+  if (b) { b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 90); }
+  press(key);
+});
+addEventListener('resize', fitDisplay);
+
+// ---------- load a copy ----------
+function runScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('could not load ' + src));
+    document.head.append(s);
+  });
+}
+async function bestLiveCopy() {
+  // Served by the Clean Room server: pick the copy that did best on tests it never saw.
+  const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 1500);
+  const r = await fetch('/scores', { signal: ctrl.signal });
+  if (!r.ok) throw new Error('no server');
+  const calc = (await r.json()).calc || [];
+  if (!calc.length) throw new Error('no copies yet');
+  const score = v => [v.held_pct ?? -1, v.train_pct ?? -1];
+  const best = calc.reduce((a, b) => { const [ha, ta] = score(a), [hb, tb] = score(b); return hb > ha || (hb === ha && tb >= ta) ? b : a; });
+  const code = await (await fetch('/copies/' + encodeURIComponent(best.file))).text();
+  return { url: URL.createObjectURL(new Blob([code], { type: 'text/javascript' })), label: best.file +
+    ' · train ' + (best.train_pct ?? '–') + '% · unseen ' + (best.held_pct ?? '–') + '%' };
+}
+async function load() {
+  let label;
+  try { const live = await bestLiveCopy(); await runScript(live.url); label = live.label; }
+  catch { await runScript('calc_best.js'); label = 'calc_best.js (pinned)'; }
+  if (!globalThis.Calc) throw new Error('the copy did not define Calc');
+  globalThis.Calc.reset();
+  ready = true; $('badge').textContent = label; render();
+  // play.html#keys=5,0,+,1,0,%,= presses keys on load (for screenshots and videos)
+  const keys = new URLSearchParams(location.hash.slice(1)).get('keys');
+  if (keys) for (const k of keys.split(',')) press(k);
+}
+load().catch(e => { $('note').hidden = false; $('note').textContent = 'No copy loaded yet: ' + e.message; });
 </script>
 </body>
 </html>

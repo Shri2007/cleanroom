@@ -1,4 +1,4 @@
-"""Call the teammate's calendar brain, or a labeled lookup-only plumbing stub."""
+"""Build with the real teammate calendar brain; stub is never selected implicitly."""
 import json
 import re
 
@@ -30,7 +30,11 @@ def stub_builder(lines, on_event):
 
 def build(payload, on_event):
     lines=payload['train_lines']
-    runner=function('server.brain','run_cal') or stub_builder
+    runner=function('server.brain','run_cal')
+    if runner is None:
+        need('server.brain.run_cal(lines, on_event) is unavailable; restart after it lands')
+        raise RuntimeError('Real calendar brain unavailable; stub mode is disabled')
+    print('Builder backend: server.brain.run_cal (real)',flush=True)
     result=runner(lines,on_event)
     if not isinstance(result,dict):raise ValueError('Brain returned an invalid result')
     if not {'best_version','train_pct','held_pct','rules'} <= result.keys():
@@ -43,5 +47,7 @@ def build(payload, on_event):
         code=path.read_text()
     if not isinstance(code,str) or not code.strip():raise ValueError('No final copy source')
     if not isinstance(result['rules'],list):raise ValueError('Brain rules must be a list')
+    result['stub']=False
+    result['brain_backend']='server.brain.run_cal'
     result['code']=code
     return result
