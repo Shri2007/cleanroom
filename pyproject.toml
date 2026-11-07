@@ -11,3 +11,8 @@ dependencies = [
     "uagents==0.26.1",
     "uvicorn>=0.54.0",
 ]
+
+[tool.uv]
+# cosmpy (pulled in by uagents) pins pynacl==1.6.0, which has known vulnerabilities
+# (PYSEC-2026-1448, PYSEC-2026-3002; fixed in 1.6.2). Override until cosmpy relaxes the pin.
+override-dependencies = ["pynacl>=1.6.2"]

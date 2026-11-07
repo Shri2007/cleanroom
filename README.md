@@ -77,7 +77,7 @@ The part companies actually pay for: take code nobody dares touch, rewrite it cl
 | Screen read (Meta, minimal reasoning) | 2.1–2.9 s per read |
 | Copy written (Meta, minimal reasoning) | about 13 s per version (4.5 minutes at default reasoning, which is why we turned it down) |
 | Watch mode, simulated fast typing | 6/6 keys, 0 duplicates |
-| Test suite | 42 passing (`uv run --with pytest python -m pytest -q`), plus 6 agent runtime tests |
+| Test suite | 62 passing (`uv run --with pytest python -m pytest -q`), plus 6 agent runtime tests |
 
 ---
 
@@ -136,7 +136,7 @@ AI-written code never runs unchecked.
 
 ## Run it
 
-Requirements: macOS, Python 3.12 with [uv](https://docs.astral.sh/uv/), Node 22+, and an iPhone with iPhone Mirroring (or any webcam).
+Requirements: macOS, Python 3.12 with [uv](https://docs.astral.sh/uv/), Node 24+ (for the `--permission` sandbox), and an iPhone with iPhone Mirroring (or any webcam).
 
 ```bash
 git clone https://github.com/Shri2007/cleanroom.git && cd cleanroom
@@ -163,6 +163,80 @@ uv run python -m server.brain traces/<session>.jsonl
 ```
 
 Fetch.ai agents: `uv run python -m agent.coordinator`. Tests: `uv run --with pytest python -m pytest -q`.
+
+---
+
+## Developer guide
+
+Deterministic checks that need no camera and no API keys.
+
+### Run the checker
+
+The checker loads a copy (the generated calculator implementation) into a Node VM and compares its display state against a recorded trace. Use the Python wrapper so the copy also runs under Node's permission sandbox:
+
+```bash
+node --version   # must be v24+
+
+uv run python -m server.checker tests/fixtures/calc_good.js traces/sample.jsonl
+```
+
+Expected result:
+
+```text
+match 100%  (5/5 lines)
+```
+
+To prove the checker is not a rubber stamp, score the deliberately wrong copy:
+
+```bash
+uv run python -m server.checker tests/fixtures/calc_bad.js traces/sample.jsonl
+## match 80%  (4/5 lines)
+```
+
+The raw Node entry point is available for debugging:
+
+```bash
+node checker/check.mjs tests/fixtures/calc_good.js traces/sample.jsonl
+```
+
+#### Checker tests
+
+```bash
+uv run python -m unittest tests.test_checker tests.test_checker_cal tests.test_checker_secrets -v
+```
+
+This runs 15 tests, including the sandbox escape/secret-leak checks.
+
+### Camera and operator smoke test
+
+The deterministic smoke test needs **no camera and no API keys**. It drives the real FastAPI app through its ASGI interface with a fake capture device and a deterministic reader, exercises taps, Snap, and Undo, then scores the resulting trace with the real checker:
+
+```bash
+uv run python -m unittest tests.test_camera_operator -v
+```
+
+This runs 5 tests. It is the reproducible camera/operator proof until the real iPhone camera and vision keys are available.
+
+For a live hardware run:
+
+1. Start the server with the camera index you want (see above).
+2. Open the operator page, confirm the live preview, enter a known calculation, press **Snap**, and press **Undo**.
+3. Score the session trace:
+
+```bash
+uv run python -m server.checker tests/fixtures/calc_good.js traces/<timestamp>.jsonl
+```
+
+The live reader is the vision model. Its readings will only match the reference copy when the camera sees the expected calculator state; use the deterministic test above when you need a repeatable 100% result.
+
+### CI
+
+The [`Checker and camera`](.github/workflows/checker.yml) workflow runs on pushes to `main` and `freebuff/**` and on pull requests to `main`:
+
+- **Node 24 checker tests** on `ubuntu-latest`: `tests.test_checker`, `tests.test_checker_cal`, and `tests.test_checker_secrets` (15 tests).
+- **Node 24 camera + operator test** on `macos-latest`: `uv sync --frozen` followed by `tests.test_camera_operator` (5 tests). macOS is required because the app imports Quartz and uses OpenCV.
+
+Both jobs pin Node 24 before running the tests. The Ubuntu job invokes the checker tests without `uv sync` because the checker is stdlib-only and the full app dependencies include macOS-only PyObjC. The camera job does not use a physical camera or API keys.
 
 ---
 
