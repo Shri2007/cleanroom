@@ -22,7 +22,7 @@ from pathlib import Path
 import cv2
 import Quartz
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -64,6 +64,7 @@ async def lifespan(app):
 
 app = FastAPI(title="Clean Room", lifespan=lifespan)
 app.mount("/web", StaticFiles(directory=ROOT / "web"), name="web")
+app.mount("/docs", StaticFiles(directory=ROOT / "docs"), name="docs")  # the phone copy, same files as GitHub Pages
 
 state = {"busy": False, "trace": None, "brain_running": False, "loop": None, "watching": False}
 subscribers = set()
@@ -391,3 +392,9 @@ async def index():
 @app.get("/screen")
 async def screen():
     return FileResponse(ROOT / "web" / "screen.html")
+
+
+@app.get("/twin")
+async def twin():
+    """"Which one is real?": the phone copy, running the best copy so far. Sits beside the mirror window."""
+    return RedirectResponse("/docs/play.html")

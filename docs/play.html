@@ -1,1 +1,170 @@
-<!-- Installable phone page running calc_best.js (Ali). -->
+<!doctype html>
+<!-- The rebuilt calculator: an AI-written copy running in a phone-style shell (Shri).
+     On GitHub Pages it runs the pinned calc_best.js. Served by the Clean Room server (/twin),
+     it runs whichever copy scored best on tests it never saw. No logos, no brand names. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Calculator">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Calculator</title>
+<style>
+  :root {
+    --digit: #333335; --digit-on: #737373;
+    --fn: #5c5c5f; --fn-on: #8e8e93;
+    --op: #ff9f0a; --op-on: #fcc78e;
+    --muted: #8e8e93;
+    --gap: 14px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff;
+    font-family: -apple-system, "SF Pro Display", system-ui, sans-serif; overflow: hidden;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  body { display: grid; place-items: center; }
+
+  .phone { width: min(100vw, 400px); height: min(100dvh, 860px); display: flex; flex-direction: column;
+    justify-content: flex-end; padding: 0 20px max(28px, env(safe-area-inset-bottom)); }
+
+  .screen { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end;
+    padding: 0 8px 18px; min-height: 0; }
+  .expr { color: var(--muted); font-size: 30px; font-weight: 400; height: 38px; line-height: 38px;
+    white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums; transition-property: opacity; transition-duration: 150ms; }
+  .expr:empty { opacity: 0; }
+  .display { font-size: 92px; font-weight: 300; line-height: 1.05; letter-spacing: -0.02em; white-space: nowrap;
+    font-variant-numeric: tabular-nums; max-width: 100%; }
+
+  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); }
+  .key { appearance: none; border: 0; margin: 0; padding: 0; aspect-ratio: 1; border-radius: 50%;
+    display: grid; place-items: center; color: #fff; font: inherit; font-size: 36px; font-weight: 400;
+    background: var(--digit); cursor: pointer;
+    /* fade back slowly on release, like the real thing; light up instantly on press */
+    transition-property: background-color, color; transition-duration: 350ms; transition-timing-function: ease-out; }
+  .key:active, .key.pressed { background: var(--digit-on); transition-duration: 0s; }
+  .key.fn { background: var(--fn); font-size: 30px; font-weight: 500; }
+  .key.fn:active, .key.fn.pressed { background: var(--fn-on); }
+  .key.op { background: var(--op); font-size: 42px; }
+  .key.op:active, .key.op.pressed { background: var(--op-on); }
+  .key.op.on { background: #fff; color: var(--op); }
+  .key svg { width: 34px; height: 34px; }
+  .key:focus-visible { outline: 2px solid rgba(255,255,255,.6); outline-offset: 3px; }
+
+  .badge { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); font: 12px ui-monospace, Menlo, monospace;
+    color: var(--muted); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
+    padding: 6px 10px; border-radius: 999px; opacity: 0; pointer-events: none;
+    transition-property: opacity; transition-duration: 150ms; }
+  .badge.show { opacity: 1; }
+  .note { position: fixed; inset: auto 0 18px; text-align: center; color: var(--muted); font-size: 14px; }
+  @media (prefers-reduced-motion: reduce) { .key, .expr, .badge { transition: none; } }
+</style>
+</head>
+<body>
+<main class="phone">
+  <div class="screen" aria-live="polite">
+    <div class="expr" id="expr"></div>
+    <div class="display" id="display">0</div>
+  </div>
+  <div class="keys" id="keys"></div>
+</main>
+<div class="badge" id="badge"></div>
+<div class="note" id="note" hidden></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>';
+// [key sent to the copy, label, style]
+const LAYOUT = [
+  ['⌫', BACK, 'fn'], ['AC', 'AC', 'fn'], ['%', '%', 'fn'], ['÷', '÷', 'op'],
+  ['7', '7'], ['8', '8'], ['9', '9'], ['×', '×', 'op'],
+  ['4', '4'], ['5', '5'], ['6', '6'], ['-', '−', 'op'],
+  ['1', '1'], ['2', '2'], ['3', '3'], ['+', '+', 'op'],
+  ['+/-', '+/−', 'fn-digit'], ['0', '0'], ['.', '.'], ['=', '=', 'op'],
+];
+const KEYBOARD = { Enter: '=', '=': '=', Backspace: '⌫', Escape: 'AC', '*': '×', x: '×', '/': '÷', '-': '-', '+': '+', '%': '%', '.': '.', ',': '.' };
+const buttons = {};
+
+for (const [key, label, style] of LAYOUT) {
+  const b = document.createElement('button');
+  b.className = 'key' + (style === 'fn' ? ' fn' : style === 'op' ? ' op' : '');
+  b.innerHTML = label;  // labels are fixed strings above, never data
+  b.setAttribute('aria-label', key === '⌫' ? 'delete' : key === '-' ? 'minus' : key);
+  b.addEventListener('pointerdown', e => { e.preventDefault(); press(key); });
+  $('keys').append(b);
+  buttons[key] = b;
+}
+
+let ready = false;
+function render() {
+  let r = {};
+  try { r = globalThis.Calc.render() || {}; } catch (e) { r = { display: 'Error' }; }
+  const display = r.display == null ? '0' : String(r.display);
+  $('display').textContent = display;
+  $('expr').textContent = r.expression == null ? '' : String(r.expression);
+  buttons['AC'].textContent = r.clear_label === 'C' ? 'C' : 'AC';
+  for (const op of ['÷', '×', '-', '+']) buttons[op].classList.toggle('on', r.active_op === op);
+  fitDisplay();
+}
+function fitDisplay() {
+  const d = $('display'), max = d.parentElement.clientWidth - 16;
+  let size = 92; d.style.fontSize = size + 'px';
+  while (d.scrollWidth > max && size > 36) { size -= 4; d.style.fontSize = size + 'px'; }
+}
+function press(key) {
+  if (!ready) return;
+  // "AC" on screen means clear-all; the copy decides what its label shows next
+  const sent = key === 'AC' && buttons['AC'].textContent === 'C' ? 'C' : key;
+  try { globalThis.Calc.press(sent); } catch (e) { console.warn('copy failed on', sent, e); }
+  render();
+}
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'v') { $('badge').classList.toggle('show'); return; }
+  const key = /^[0-9]$/.test(e.key) ? e.key : KEYBOARD[e.key];
+  if (!key) return;
+  e.preventDefault();
+  const b = buttons[key === 'C' ? 'AC' : key];
+  if (b) { b.classList.add('pressed'); setTimeout(() => b.classList.remove('pressed'), 90); }
+  press(key);
+});
+addEventListener('resize', fitDisplay);
+
+// ---------- load a copy ----------
+function runScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('could not load ' + src));
+    document.head.append(s);
+  });
+}
+async function bestLiveCopy() {
+  // Served by the Clean Room server: pick the copy that did best on tests it never saw.
+  const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 1500);
+  const r = await fetch('/scores', { signal: ctrl.signal });
+  if (!r.ok) throw new Error('no server');
+  const calc = (await r.json()).calc || [];
+  if (!calc.length) throw new Error('no copies yet');
+  const score = v => [v.held_pct ?? -1, v.train_pct ?? -1];
+  const best = calc.reduce((a, b) => { const [ha, ta] = score(a), [hb, tb] = score(b); return hb > ha || (hb === ha && tb >= ta) ? b : a; });
+  const code = await (await fetch('/copies/' + encodeURIComponent(best.file))).text();
+  return { url: URL.createObjectURL(new Blob([code], { type: 'text/javascript' })), label: best.file +
+    ' · train ' + (best.train_pct ?? '–') + '% · unseen ' + (best.held_pct ?? '–') + '%' };
+}
+async function load() {
+  let label;
+  try { const live = await bestLiveCopy(); await runScript(live.url); label = live.label; }
+  catch { await runScript('calc_best.js'); label = 'calc_best.js (pinned)'; }
+  if (!globalThis.Calc) throw new Error('the copy did not define Calc');
+  globalThis.Calc.reset();
+  ready = true; $('badge').textContent = label; render();
+}
+load().catch(e => { $('note').hidden = false; $('note').textContent = 'No copy loaded yet: ' + e.message; });
+</script>
+</body>
+</html>

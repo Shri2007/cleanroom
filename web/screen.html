@@ -13,15 +13,18 @@
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
     font: 20px/1.35 system-ui, -apple-system, sans-serif; overflow: hidden; }
+  h2, .tag { text-wrap: balance; }
+  img { outline: 1px solid rgba(255,255,255,.1); outline-offset: -1px; }
   /* Designed at 1920x1080 and scaled to fit any window, so it looks the same on a laptop or projector. */
   .app { display: grid; width: 1920px; height: 1080px; padding: 20px; gap: 20px;
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(var(--fit, 1));
     grid-template-columns: 420px 1fr 1fr; grid-template-rows: auto 1fr 300px;
     grid-template-areas: "top top top" "eye trace rules" "eye score score"; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px;
-    box-shadow: 0 8px 30px rgba(0,0,0,.35); min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.25), 0 8px 30px rgba(0,0,0,.3); min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
   h2 { margin: 0 0 12px; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 
   .top { grid-area: top; display: flex; align-items: center; gap: 20px; }
@@ -37,7 +40,7 @@
   @keyframes pulse { 50% { opacity: .35; } }
 
   .eye { grid-area: eye; padding: 14px; }
-  .eye .frame { position: relative; flex: 1; border-radius: 12px; overflow: hidden; background: #000; }
+  .eye .frame { position: relative; flex: 1; border-radius: 6px; overflow: hidden; background: #000; }  /* 6 = 20 outer - 14 padding */
   .eye img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .eye .hint { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 18px; }
 
@@ -56,7 +59,11 @@
   .rules { grid-area: rules; }
   .rule-list { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
   .rule { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; border-radius: 10px;
-    border: 2px solid var(--line); font-size: 19px; transition: border-color .4s, background .4s; }
+    border: 2px solid var(--line); font-size: 19px; text-wrap: pretty;
+    transition-property: border-color, background-color; transition-duration: 400ms; transition-timing-function: ease-out;
+    animation: enter 300ms ease-out both; }
+  @keyframes enter { from { opacity: 0; transform: translateY(6px); filter: blur(2px); } }
+  .row { animation: enter 220ms ease-out both; }
   .rule .mark { font-weight: 800; width: 20px; flex: none; }
   .rule.seen { border-style: solid; border-color: rgba(61,220,151,.55); }
   .rule.seen .mark { color: var(--good); }
@@ -89,13 +96,16 @@
 
   .flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity .15s; }
   .flash.on { opacity: .85; transition: none; }
+  /* exit is shorter and quieter than enter */
   .thumb { position: fixed; right: 28px; bottom: 28px; background: var(--card); border: 1px solid var(--line);
-    border-radius: 14px; padding: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); transform: translateY(140%);
-    opacity: 0; transition: transform .35s ease-out, opacity .35s; text-align: center; }
-  .thumb.on { transform: none; opacity: 1; }
-  .thumb img { max-height: 220px; border-radius: 8px; display: block; }
+    border-radius: 18px; padding: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 40px rgba(0,0,0,.45);
+    transform: translateY(12px); filter: blur(4px); opacity: 0; text-align: center;
+    transition-property: transform, opacity, filter; transition-duration: 150ms; transition-timing-function: ease-in; }
+  .thumb.on { transform: none; filter: none; opacity: 1; transition-duration: 300ms; transition-timing-function: ease-out; }
+  .thumb img { max-height: 220px; border-radius: 8px; display: block; }  /* 18 outer = 8 inner + 10 padding */
   .thumb div { font-family: var(--mono); font-size: 22px; margin-top: 8px; }
   .keys { position: absolute; left: 24px; bottom: 2px; font-size: 13px; color: #4b5266; }
+  .ask { animation: enter 300ms ease-out both; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
