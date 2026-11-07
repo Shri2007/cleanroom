@@ -1,7 +1,7 @@
 """Frame -> display JSON via vision model (Shri).
 
-Gemini Flash-Lite first: ~2 s per read. Meta muse-spark-1.3 reads images too but
-took ~24 s in our 11:05 test, so it is the backup here (Meta stays the brain).
+Meta muse-spark-1.3 first, with minimal reasoning: ~2-3 s per read and correct (tested 13:55; at
+default reasoning it took ~24 s, which is why Gemini led this morning). Gemini Flash-Lite is the backup.
 A failed reading returns every field as None, so the trace line is suspect.
 """
 import base64
@@ -15,9 +15,9 @@ from openai import OpenAI
 load_dotenv()
 
 MODELS = [  # (name, base_url, key env var, model, extra request args)
+    ("meta", "https://api.meta.ai/v1", "MODEL_API_KEY", "muse-spark-1.3", {"reasoning_effort": "minimal"}),
     ("gemini", "https://generativelanguage.googleapis.com/v1beta/openai/", "GEMINI_API_KEY",
      "gemini-flash-lite-latest", {"reasoning_effort": "low"}),
-    ("meta", "https://api.meta.ai/v1", "MODEL_API_KEY", "muse-spark-1.3", {}),
 ]
 OPS = {"+", "-", "×", "÷"}
 EMPTY = {"display": None, "expression": None, "clear_label": None, "active_op": None}
