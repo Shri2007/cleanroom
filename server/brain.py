@@ -30,9 +30,11 @@ BRAINS = [  # (name, base_url, key env var, model, extra request args)
     ("gemini", "https://generativelanguage.googleapis.com/v1beta/openai/", "GEMINI_API_KEY",
      "gemini-flash-lite-latest", {"reasoning_effort": "low"}),
 ]
+FAST_BRAINS = [BRAINS[1], BRAINS[0]]  # live code writing: Flash-Lite (~3 s), then Meta
 FIELDS = ("display", "expression", "clear_label", "active_op")
 V1_LINES = 10      # v1 sees only the first ~10 taps, so the climb is honest
 MAX_ROUNDS = 4
+TIME_BUDGET = 40  # seconds for a live run: stop and keep the best version when time is up
 MAX_PROMPT_LINES = 200
 BANNED = re.compile(r"\b(require|import|export|process|fetch|XMLHttpRequest|WebSocket|setTimeout|setInterval|"
                     r"eval|Function|globalThis\.constructor)\b")
@@ -47,12 +49,13 @@ def client(base_url, key_name):
     return _clients[key_name]
 
 
-def ask(system, user):
-    """Meta first; Gemini only if Meta errors or times out."""
+def ask(system, user, fast=False):
+    """Meta first; Gemini only if Meta errors or times out. fast=True flips the order: code writing
+    took Meta 13-38 s per copy, too slow for a live 3-minute demo, so copies go to Gemini Flash-Lite (~3 s)."""
     global last_brain
     messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     errors = []
-    for name, base_url, key_name, model, extra in BRAINS:
+    for name, base_url, key_name, model, extra in (FAST_BRAINS if fast else BRAINS):
         if not os.environ.get(key_name):
             continue
         try:
@@ -131,7 +134,8 @@ COPY_RULES = (
     "globalThis.Calc = { reset() {}, press(key) {}, render() { return {display, expression, clear_label, active_op}; } };\n"
     "Keys: 0-9 . + - × ÷ = % +/- AC C ⌫ (exact strings). render() returns strings exactly as the "
     "phone shows them (same commas, symbols, 'Error' text) or null for fields not shown. "
-    "Only display/expression/clear_label/active_op are compared, and only where the observed value is not null. "
+    "display/expression/clear_label are compared where the observed value is not null. active_op is ALWAYS "
+    "compared: null means no operator key is lit, so return null whenever the evidence shows nothing highlighted. "
     "No import, require, process, fetch, timers, eval or Function. Return only the code.")
 
 
@@ -146,14 +150,14 @@ def check_code(text):
 
 def write_copy(rules, lines):
     user = f"RULES:\n{json.dumps(rules, ensure_ascii=False)}\n\nEVIDENCE:\n{fmt(lines)}"
-    return check_code(ask("You build a calculator copy from a spec. " + COPY_RULES, user))
+    return check_code(ask("You build a calculator copy from a spec. " + COPY_RULES, user, fast=True))
 
 
-def fix_copy(code, rules, mismatches):
-    user = (f"RULES:\n{json.dumps(rules, ensure_ascii=False)}\n\nCURRENT CODE:\n{code}\n\n"
+def fix_copy(code, rules, mismatches, evidence=()):
+    user = (f"RULES:\n{json.dumps(rules, ensure_ascii=False)}\n\nEVIDENCE:\n{fmt(list(evidence))}\n\nCURRENT CODE:\n{code}\n\n"
             f"MISMATCHES (expected vs got, per test from reset):\n{json.dumps(mismatches[:20], ensure_ascii=False)}")
     return check_code(ask("You fix a calculator copy so it matches observed behavior. Return the full new file. "
-                          + COPY_RULES, user))
+                          + COPY_RULES, user, fast=True))
 
 
 def pick_test(rules):
@@ -188,7 +192,9 @@ process.stdin.on('data', d => buf += d).on('end', () => {
       rows.forEach((r, i) => {
         total++;
         const g = got[i] || {};
-        const bad = fields.filter(f => r[f] != null && String(g[f]) !== String(r[f]));
+        // active_op null is a real observation ("no operator lit"), so it is compared too; the reader
+        // reports highlights reliably. Other null fields mean "not shown" and are skipped.
+        const bad = fields.filter(f => (r[f] != null || f === 'active_op') && String(g[f] ?? null) !== String(r[f] ?? null));
         if (bad.length) { pass = false; mismatches.push({test, seq: r.seq, key: r.key,
           expected: Object.fromEntries(bad.map(f => [f, r[f]])), got: Object.fromEntries(bad.map(f => [f, g[f] ?? null]))}); }
         else matched++;
@@ -244,12 +250,8 @@ def score(code, lines, tests):
     subset = [l for l in lines if l["test"] in set(tests)]
     if not subset:
         return {"match_pct": None, "matched": 0, "total": 0, "mismatches": []}
-    try:
-        from server import checker
-        if hasattr(checker, "run"):  # Ali's checker, once it lands
-            return checker.run("calc", code, subset)
-    except ImportError:
-        pass
+    # The brain's own scorer, not checker.run: it also checks that the operator highlight turns off
+    # (active_op null), which the shared checker skips. Same sandbox rules.
     return _score_standin(code, subset)
 
 
@@ -282,12 +284,16 @@ def run_loop(trace_path, on_event=print):
     train = [l for l in lines if l["test"] in train_ids]
     on_event({"step": "split", "lines": len(lines), "train_tests": train_ids, "held_tests": held_ids})
 
+    started = time.monotonic()
     rules = find_rules(train[:V1_LINES])
     on_event({"step": "rules", "rules": rules})
-    code = write_copy(rules, train[:V1_LINES])
+    try:
+        code = write_copy(rules, train[:V1_LINES])
+    except ValueError:  # e.g. a banned word: one retry
+        code = write_copy(rules, train[:V1_LINES])
     best = None
     first_version = next_version()
-    for round_no in range(MAX_ROUNDS + 1):
+    for round_no in range(MAX_ROUNDS + 3):
         tr, he = score(code, lines, train_ids), score(code, lines, held_ids)
         improved = best is None or tr["match_pct"] > best["train"]["match_pct"]
         version = first_version + round_no
@@ -299,16 +305,15 @@ def run_loop(trace_path, on_event=print):
         else:
             best["stale"] += 1
         held_pass = best["held"]["match_pct"] in (None, 100)
-        if (best["train"]["match_pct"] == 100 and held_pass) or best["stale"] >= 2 or round_no == MAX_ROUNDS:
+        out_of_time = time.monotonic() - started > TIME_BUDGET - 6  # a fix takes ~3-6 s
+        if (best["train"]["match_pct"] == 100 and held_pass) or best["stale"] >= 4 or round_no == MAX_ROUNDS + 2 \
+                or out_of_time:
             break
-        if round_no == 0:  # after v1, the brain gets every training line
-            rules = find_rules(train)
-            on_event({"step": "rules", "rules": rules})
         try:
-            code = fix_copy(best["code"], rules, best["train"]["mismatches"])
-        except (ValueError, json.JSONDecodeError) as e:
+            code = fix_copy(best["code"], rules, best["train"]["mismatches"], train)
+        except (ValueError, json.JSONDecodeError) as e:  # a blocked or broken copy: try again next round
             on_event({"step": "fix_failed", "error": str(e)})
-            break
+            code = best["code"]
     on_event({"step": "done", "best_version": best["version"], "train_pct": best["train"]["match_pct"],
               "held_pct": best["held"]["match_pct"]})
     return best

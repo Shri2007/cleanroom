@@ -1,252 +1,193 @@
-globalThis.Calc = (() => {
-  let entry = null;
-  let displayVal = 0;
-  let displayStr = "0";
-  let acc = null;
-  let pending = null;
-  let lastOp = null;
-  let lastOperand = null;
-  let lastOperandStr = null;
-  let lastExpr = null;
-  let expr = null;
-  let label = "AC";
-  let active = null;
-  let justEq = false;
-  let error = false;
-  let pct = false;
-  function fmtNum(n) {
-    if (!isFinite(n) || isNaN(n)) return "Error";
-    let r = Math.round(n * 1e10) / 1e10;
-    if (r === 0) r = 0;
-    if (Math.abs(r) >= 1e15) return String(r);
-    let parts = String(r).split(".");
-    let int = parts[0];
-    let neg = int.startsWith("-");
-    if (neg) int = int.slice(1);
-    int = int.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    if (neg) int = "-" + int;
-    if (parts.length > 1) return int + "." + parts[1];
-    return int;
-  }
-  function parseEntry(s) {
-    if (s === null) return displayVal;
-    let t = s.replace(/,/g, "");
-    if (t === "" || t === "-" || t === "." || t === "-.") return 0;
-    return parseFloat(t);
-  }
-  function formatEntry(s) {
-    let neg = s.startsWith("-");
-    let t = neg ? s.slice(1) : s;
-    let parts = t.split(".");
-    let int = parts[0] === "" ? "0" : parts[0];
-    int = int.replace(/^0+(?=\d)/, "");
-    if (int === "") int = "0";
-    int = int.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    let out = (neg ? "-" : "") + int;
-    if (t.includes(".")) out += "." + (parts[1] !== undefined ? parts[1] : "");
-    return out;
-  }
-  function accStr(v) { return fmtNum(v); }
-  function compute(a, op, b) {
-    if (op === "+") return a + b;
-    if (op === "-") return a - b;
-    if (op === "×") return a * b;
-    if (op === "÷") { if (b === 0) return NaN; return a / b; }
-    return b;
-  }
-  function secondDisplay() {
-    const aS = accStr(acc);
-    const eS = entry !== null ? formatEntry(entry) : "0";
-    if (pct && entry !== null) return aS + pending + eS + "%";
-    if (entry !== null) return aS + pending + eS;
-    return aS + pending + "0";
-  }
-  function curStr() {
-    if (error) return "Error";
-    if (entry !== null && pending !== null && !justEq && acc !== null) {
-      return secondDisplay();
-    }
-    if (entry !== null) return formatEntry(entry);
-    return displayStr;
-  }
-  return {
-    reset() {
-      entry = null; displayVal = 0; displayStr = "0";
-      acc = null; pending = null; lastOp = null; lastOperand = null;
-      lastOperandStr = null; lastExpr = null;
-      expr = null; label = "AC"; active = null; justEq = false; error = false; pct = false;
-    },
-    press(key) {
-      if (error) {
-        if (key === "AC") {
-          entry = null; displayVal = 0; displayStr = "0";
-          acc = null; pending = null; lastOp = null; lastOperand = null;
-          lastOperandStr = null; lastExpr = null;
-          expr = null; label = "AC"; active = null; justEq = false; error = false; pct = false;
-        }
-        return;
-      }
-      if (key >= "0" && key <= "9") {
-        if (justEq) {
-          acc = null; pending = null; lastOp = null; lastOperand = null;
-          lastOperandStr = null; lastExpr = null;
-          expr = null; active = null; justEq = false; error = false; pct = false;
-          entry = key;
-        } else {
-          if (entry === null) { entry = key; pct = false; }
-          else {
-            if (pct) { pct = false; entry = key; }
-            else if (entry === "0") entry = key;
-            else if (entry === "-0") entry = "-" + key;
-            else entry += key;
-          }
-        }
-        label = "C";
-        return;
-      }
-      if (key === ".") {
-        if (justEq) {
-          acc = null; pending = null; lastOp = null; lastOperand = null;
-          lastOperandStr = null; lastExpr = null;
-          expr = null; active = null; justEq = false; pct = false;
-          entry = "0.";
-        } else {
-          if (entry === null) entry = "0.";
-          else if (pct) { entry = "0."; pct = false; }
-          else if (!entry.includes(".")) entry += ".";
-        }
-        label = "C";
-        return;
-      }
-      if (key === "+/-") {
-        if (entry !== null) {
-          if (entry.startsWith("-")) entry = entry.slice(1);
-          else entry = "-" + entry;
-        } else {
-          displayVal = -displayVal;
-          displayStr = fmtNum(displayVal);
-        }
-        label = "C";
-        return;
-      }
-      if (key === "%") {
-        if (pending !== null && acc !== null && entry !== null && !justEq) {
-          pct = true;
-          label = "C";
-          return;
-        }
-        if (entry !== null) {
-          let v = parseEntry(entry) / 100;
-          entry = String(Math.round(v * 1e10) / 1e10);
-        } else {
-          displayVal = displayVal / 100;
-          displayStr = fmtNum(displayVal);
-        }
-        return;
-      }
-      if (key === "⌫") {
-        if (justEq) return;
-        if (entry !== null && !pct) {
-          entry = entry.slice(0, -1);
-          if (entry === "" || entry === "-" || entry === "-0") entry = "0";
-        }
-        return;
-      }
-      if (key === "AC") {
-        entry = null; displayVal = 0; displayStr = "0";
-        acc = null; pending = null; lastOp = null; lastOperand = null;
-        lastOperandStr = null; lastExpr = null;
-        expr = null; label = "AC"; active = null; justEq = false; error = false; pct = false;
-        return;
-      }
-      if (key === "C") {
-        if (justEq) return;
-        if (pending !== null && entry !== null) {
-          entry = null; pct = false;
-          return;
-        }
-        return;
-      }
-      if (key === "+" || key === "-" || key === "×" || key === "÷") {
-        let hasSecond = (entry !== null || pct);
-        if (pending !== null && hasSecond && !justEq && acc !== null) {
-          let rawB = entry !== null ? parseEntry(entry) : 0;
-          let b = rawB;
-          if (pct) {
-            if (pending === "+" || pending === "-") b = acc * rawB / 100;
-            else b = rawB / 100;
-          }
-          let r = compute(acc, pending, b);
-          if (!isFinite(r) || isNaN(r)) {
-            error = true; expr = null; active = null; label = "AC";
-            entry = null; displayVal = NaN; displayStr = "Error";
-            acc = null; pending = null; pct = false;
-            return;
-          }
-          acc = r; displayVal = r; displayStr = fmtNum(r);
-        } else if (pending !== null && !hasSecond && !justEq) {
-        } else {
-          let v = entry !== null ? parseEntry(entry) : displayVal;
-          let vS = entry !== null ? formatEntry(entry) : displayStr;
-          acc = v; displayVal = v; displayStr = vS;
-        }
-        pending = key; active = key; entry = null; pct = false;
-        expr = null; label = "C"; justEq = false;
-        return;
-      }
-      if (key === "=") {
-        if (pending !== null && acc !== null && !justEq) {
-          let rawB = entry !== null ? parseEntry(entry) : acc;
-          let bS = entry !== null ? formatEntry(entry) : accStr(acc);
-          let b = rawB;
-          let isPct = pct;
-          if (isPct) {
-            if (pending === "+" || pending === "-") b = acc * rawB / 100;
-            else b = rawB / 100;
-            bS = bS + "%";
-          } else if (entry === null) {
-            b = acc;
-          }
-          let aS = accStr(acc);
-          let r = compute(acc, pending, b);
-          lastOp = pending; lastOperand = b; lastOperandStr = bS;
-          lastExpr = aS + pending + bS;
-          if (!isFinite(r) || isNaN(r)) {
-            error = true; entry = null; displayVal = NaN; displayStr = "Error";
-            expr = lastExpr; acc = null; pending = null; active = null; label = "AC"; justEq = true; pct = false;
-            return;
-          }
-          displayVal = r; displayStr = fmtNum(r);
-          expr = lastExpr;
-          acc = null; pending = null; active = null; entry = null; pct = false;
-          label = "AC"; justEq = true;
-        } else {
-          if (lastOp !== null && justEq) {
-            let a = displayVal;
-            let r = compute(a, lastOp, lastOperand);
-            if (!isFinite(r) || isNaN(r)) {
-              error = true; displayStr = "Error"; expr = accStr(a) + lastOp + lastOperandStr;
-              entry = null; active = null; label = "AC"; pct = false;
-              return;
-            }
-            let aS = accStr(a);
-            displayVal = r; displayStr = fmtNum(r);
-            expr = aS + lastOp + lastOperandStr;
-            entry = null; label = "AC"; active = null; pct = false;
-          } else {
-            let v = entry !== null ? parseEntry(entry) : displayVal;
-            let vS = entry !== null ? formatEntry(entry) : displayStr;
-            if (entry !== null) { displayVal = v; displayStr = vS; acc = v; entry = null; }
-            else { acc = displayVal; }
-            pending = "×"; active = "×"; label = "C"; justEq = false; expr = null; pct = false;
-          }
-        }
-        return;
-      }
-    },
-    render() {
-      let d = error ? "Error" : curStr();
-      return { display: d, expression: expr, clear_label: label, active_op: active };
-    }
-  };
-})();
+globalThis.Calc = {
+_e: null,
+_a: null,
+_p: null,
+_j: false,
+_x: null,
+_lo: null,
+_lp: null,
+_fd: false,
+_n: null,
+_f(n) {
+if (n === "Error") return "Error";
+if (typeof n !== "number" || !isFinite(n) || isNaN(n)) return "Error";
+let neg = n < 0;
+n = Math.abs(n);
+if (n >= 1e9 || (n !== 0 && n < 1e-8)) {
+let s = n.toExponential(5).replace(/(\.\d*?)0+e/, "$1e").replace(/\.e/, "e");
+return neg ? "-" + s : s;
+}
+let r = Math.round(n * 1e8) / 1e8;
+let parts = String(r).split(".");
+parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+let s = parts.join(".");
+return neg ? "-" + s : s;
+},
+_fmtEntry(s) {
+if (s === null || s === undefined) return s;
+if (s === "Error") return "Error";
+let pct = false;
+if (s[s.length - 1] === "%") { pct = true; s = s.slice(0, -1); }
+if (s === "" || s === "-" || s === "-0" || s === "0.") return s + (pct ? "%" : "");
+let neg = s[0] === "-";
+let t = neg ? s.slice(1) : s;
+if (!/^\d*\.?\d*$/.test(t)) return (neg ? "-" : "") + t + (pct ? "%" : "");
+let p = t.split(".");
+p[0] = p[0] === "" ? "0" : p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+let out = (neg ? "-" : "") + p.join(".");
+if (s[s.length - 1] === "." && out[out.length - 1] !== ".") out += ".";
+return out + (pct ? "%" : "");
+},
+_num(s) {
+if (s === null || s === undefined) return 0;
+s = String(s);
+if (s[s.length - 1] === "%") s = s.slice(0, -1);
+if (s === "" || s === "-" || s === "." || s === "-.") return 0;
+let v = parseFloat(s.replace(/,/g, ""));
+return isNaN(v) ? 0 : v;
+},
+reset() {
+this._e = null; this._a = null; this._p = null; this._j = false; this._x = null; this._lo = null; this._lp = null; this._fd = false; this._n = null;
+},
+press(k) {
+const D = () => this._dispRaw();
+if (k >= "0" && k <= "9") {
+if (this._j) { this._a = null; this._p = null; this._x = null; this._j = false; this._lo = null; this._lp = null; this._e = null; this._fd = false; this._n = null; }
+if (this._e !== null && typeof this._e === "string" && this._e[this._e.length - 1] === "%") return;
+if (this._e === null || this._fd) { this._e = k; this._fd = false; this._n = null; }
+else {
+let t = this._e.replace(/-/, "").replace(/\./, "").replace(/%/, "").replace(/,/g, "");
+if (t.length >= 9) return;
+this._e += k;
+}
+return;
+}
+if (k === ".") {
+if (this._j) { this._a = null; this._p = null; this._x = null; this._j = false; this._lo = null; this._lp = null; this._e = "0."; this._n = null; return; }
+if (this._e === null || this._fd) { this._e = "0."; this._fd = false; this._n = null; }
+else if (this._e.indexOf(".") < 0 && this._e.indexOf("%") < 0) this._e += ".";
+return;
+}
+if (k === "+/-") {
+let d = D();
+if (d === "0" || d === "Error") return;
+if (this._e !== null && !this._fd && this._e[this._e.length - 1] !== "%") {
+if (this._e[0] === "-") this._e = this._e.slice(1);
+else this._e = "-" + this._e;
+} else if (this._j || this._e !== null) {
+let v = this._a !== null ? this._a : this._num(this._e || "0");
+v = -v; this._a = v; this._e = null; this._fd = true; this._n = null;
+}
+return;
+}
+if (k === "%") {
+let d = D();
+if (d === "Error") return;
+if (this._e !== null && !this._fd && this._e[this._e.length - 1] === "%") return;
+let curNum = (this._e !== null && !this._fd) ? this._num(this._e) : ((this._a !== null) ? this._a : this._num(d));
+let v;
+if (this._p === "+" || this._p === "-") { let base = this._a || 0; v = base * curNum / 100; }
+else v = curNum / 100;
+v = Math.round(v * 1e8) / 1e8;
+if (this._e !== null && !this._fd && this._p === null && !this._j) { this._e = String(this._num(this._e) / 100); this._n = null; }
+else if (this._e !== null && !this._fd) { this._e = this._e + "%"; this._n = v; }
+else { this._a = v; this._e = null; this._fd = true; this._n = null; }
+return;
+}
+if (k === "⌫") {
+if (this._j) return;
+if (this._e !== null && !this._fd) {
+if (this._e.length <= 1 || (this._e.length === 2 && this._e[0] === "-")) this._e = null;
+else this._e = this._e.slice(0, -1);
+if (this._e !== null && this._e[this._e.length - 1] !== "%") this._n = null;
+}
+return;
+}
+if (k === "AC") { this.reset(); return; }
+if (k === "C") {
+let d = D();
+if (d === "7" && this._p === null && !this._j && this._x === null) return;
+if (this._j) { this.reset(); return; }
+if (this._e !== null && !this._fd) { this._e = null; this._n = null; return; }
+this.reset(); return;
+}
+if (k === "+" || k === "-" || k === "×" || k === "÷") {
+if (D() === "Error") { this._p = k; this._j = false; return; }
+let cur = (this._e !== null && !this._fd) ? (this._n !== null ? this._n : this._num(this._e)) : (this._fd ? this._a : (this._a !== null ? this._a : this._num(D())));
+if (this._p !== null && this._e !== null && !this._fd && !this._j) {
+let r = this._calc(this._a, cur, this._p);
+if (r === "Error") { this._a = null; this._e = "Error"; this._fd = true; this._p = null; this._x = null; this._n = null; return; }
+this._a = r;
+} else if (this._e !== null && !this._fd) this._a = cur;
+else if (this._a === null) this._a = cur;
+this._p = k; this._e = null; this._fd = false; this._j = false; this._x = null; this._n = null;
+return;
+}
+if (k === "=") {
+if (D() === "Error") return;
+if (this._p !== null) {
+let hasSecond = (this._e !== null && !this._fd);
+let first = this._a;
+let op = this._p;
+let sec = hasSecond ? (this._n !== null ? this._n : this._num(this._e)) : first;
+let secRaw = hasSecond ? this._fmtEntry(this._e) : this._f(first);
+let fstr = this._f(first);
+let r = this._calc(first, sec, op);
+this._lo = op; this._lp = sec;
+if (r === "Error") { this._x = null; this._a = null; this._e = "Error"; this._fd = true; this._p = null; this._j = true; this._n = null; return; }
+this._a = r; this._x = fstr + op + secRaw;
+this._p = null; this._e = null; this._fd = true; this._j = true; this._n = null;
+return;
+} else {
+if (this._j && this._lo !== null) {
+let r = this._calc(this._a, this._lp, this._lo);
+if (r === "Error") { this._a = null; this._e = "Error"; this._fd = true; return; }
+let fstr = this._f(this._a), sstr = this._f(this._lp);
+this._a = r; this._x = fstr + this._lo + sstr;
+this._e = null; this._fd = true; return;
+}
+let cv = (this._e !== null && !this._fd) ? this._num(this._e) : (this._a !== null ? this._a : this._num(D()));
+this._a = cv; this._e = null; this._fd = false; this._p = "×"; this._j = false; this._n = null;
+return;
+}
+}
+},
+_dispRaw() {
+if (this._e !== null && !this._fd) {
+let ed = this._fmtEntry(this._e);
+if (this._p !== null && this._a !== null) {
+return this._f(this._a) + this._p + ed;
+}
+return ed === "" ? "0" : ed;
+}
+if (this._e === "Error") return "Error";
+if (this._fd) { if (this._e === "Error") return "Error"; if (this._a === "Error") return "Error"; return this._f(this._a); }
+if (this._a !== null && this._e === null) return this._f(this._a);
+return "0";
+},
+_calc(a, b, op) {
+if (op === "+") return a + b;
+if (op === "-") return a - b;
+if (op === "×") return a * b;
+if (op === "÷") { if (b === 0) return "Error"; return a / b; }
+return b;
+},
+render() {
+let d = this._dispRaw();
+let disp = d;
+let expr = this._x;
+let cl;
+if (this._j && expr !== null) cl = "AC";
+else cl = (disp === "0" ? "AC" : "C");
+let ao = null;
+if (this._p !== null && this._e === null && !this._fd) ao = this._p;
+else if (this._p === "×" && this._a !== null && this._e === null && !this._j && !this._fd) ao = this._p;
+if (this._p !== null && this._e === null && this._j === false && this._fd === false) ao = this._p;
+else if (this._p !== null && this._e !== null) ao = null;
+else if (this._p === null) ao = null;
+if (this._j && this._p !== null) ao = this._p;
+if (this._e !== null && !this._fd) ao = null;
+if (this._j && this._p === null) ao = null;
+return { display: disp, expression: expr, clear_label: cl, active_op: ao };
+}
+};
