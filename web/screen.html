@@ -293,7 +293,10 @@ function connect() {
     else if (d.step === 'done') { setBrain('best: v' + d.best_version, false); }
     else if (d.step === 'failed' || d.step === 'fix_failed') { setBrain('brain error, kept best version', false); }
   });
-  es.onerror = () => { setBusy(false); $('stateText').textContent = 'reconnecting…'; };
+  es.onerror = () => {
+    setBusy(false); $('stateText').textContent = 'reconnecting…';
+    watching = false; $('watchPill').hidden = true;  // a restarted server is not watching until told to
+  };
 }
 
 // ---------- keyboard controls for the presenter ----------
@@ -307,7 +310,7 @@ document.addEventListener('keydown', e => {
   if (k === 'r') post('/brain/run');
   else if (k === 't') { $('askText').textContent = 'thinking…'; $('ask').classList.add('on'); post('/brain/pick_test'); }
   else if (k === 'n') post('/session/new');
-  else if (k === 'w') post(watching ? '/watch/stop' : '/watch/start');
+  else if (k === 'w') post('/watch/toggle');
   else if (k === 'escape') $('ask').classList.remove('on');
 });
 
@@ -316,7 +319,10 @@ async function load() {
   const img = $('preview');
   img.onload = () => { $('previewHint').hidden = true; };
   img.src = '/preview.mjpg';
-  try { const t = await (await fetch('/trace')).json(); lines = t.lines; setBusy(t.busy); renderRows(); } catch {}
+  try {
+    const t = await (await fetch('/trace')).json(); lines = t.lines; setBusy(t.busy); renderRows();
+    watching = !!t.watching; $('watchPill').hidden = !watching;
+  } catch {}
   if (lines.length) try {  // an empty session starts with a clean screen, not the last run's scores
     const calc = (await (await fetch('/scores')).json()).calc || [];
     const lastRunStart = calc.map(v => v.round).lastIndexOf(0);

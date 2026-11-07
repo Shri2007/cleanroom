@@ -276,6 +276,12 @@ async def watch_stop():
     return {"watching": False}
 
 
+@app.post("/watch/toggle")
+async def watch_toggle():
+    """The server knows whether it is watching; pages may have a stale idea after a restart."""
+    return await (watch_stop() if state["watching"] else watch_start())
+
+
 class BrainRun(BaseModel):
     trace: str | None = None  # a file name in traces/; default: the live session
 
@@ -336,7 +342,7 @@ async def get_copy(name: str):
 @app.get("/trace")
 async def get_trace():
     trace = state["trace"]
-    return {"path": trace.path.name, "busy": state["busy"], "lines": trace.lines}
+    return {"path": trace.path.name, "busy": state["busy"], "watching": state["watching"], "lines": trace.lines}
 
 
 @app.get("/events")
