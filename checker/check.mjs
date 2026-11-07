@@ -33,11 +33,17 @@ const norm = (field, v) => {
 };
 
 function runInSandbox(source) {
-  const sandbox = { module: { exports: {} }, console: { log() {}, error() {}, warn() {} } };
-  sandbox.exports = sandbox.module.exports;
-  const ctx = vm.createContext(sandbox, { codeGeneration: { strings: false, wasm: false } });
+  // Nothing made in this (host) realm may be visible inside the sandbox: a host function's
+  // .constructor is the host Function, which reaches `process` and the environment. So the
+  // sandbox starts empty and module/exports/console are built inside it.
+  const ctx = vm.createContext(Object.create(null), { codeGeneration: { strings: false, wasm: false } });
+  vm.runInContext(
+    "var module = { exports: {} }; var exports = module.exports;" +
+    "var console = { log() {}, error() {}, warn() {}, info() {}, debug() {} };",
+    ctx,
+  );
   new vm.Script(source, { filename: "copy.js" }).runInContext(ctx, { timeout: 2000 });
-  return { ctx, exported: sandbox.module.exports };
+  return { ctx, exported: vm.runInContext("module.exports", ctx) };
 }
 
 function loadCopy(source) {
@@ -152,7 +158,13 @@ export function check(source, lines, onlyTests = null, mode = null) {
   };
 }
 
+// Defence in depth: even if a copy escaped the sandbox it would find no keys here.
+function scrubEnv() {
+  for (const k of Object.keys(process.env)) delete process.env[k];
+}
+
 function main(argv) {
+  scrubEnv();
   const [copyPath, tracePath, ...rest] = argv;
   if (!copyPath || !tracePath) {
     console.error("usage: node check.mjs <copy.js> <trace.jsonl> [--tests 1,2,3] [--mode calc|cal]");
