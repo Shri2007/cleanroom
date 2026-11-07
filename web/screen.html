@@ -1,1 +1,316 @@
-<!-- Big screen: preview, thumbnails, rules, score (Ali). -->
+<!doctype html>
+<!-- Big screen: preview, trace, rules, score climb (built by Shri while Ali was away). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clean Room</title>
+<style>
+  :root {
+    --bg: #0d0f14; --card: #151923; --line: #232938; --text: #e8ebf2; --muted: #8b93a7;
+    --accent: #7c8cff; --good: #3ddc97; --warn: #ffb454; --bad: #ff6b6b;
+    --mono: ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 20px/1.35 system-ui, -apple-system, sans-serif; overflow: hidden; }
+  .app { display: grid; height: 100vh; padding: 20px; gap: 20px;
+    grid-template-columns: 420px 1fr 1fr; grid-template-rows: auto 1fr 300px;
+    grid-template-areas: "top top top" "eye trace rules" "eye score score"; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.35); min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  h2 { margin: 0 0 12px; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+  .top { grid-area: top; display: flex; align-items: center; gap: 20px; }
+  .brand { font-size: 30px; font-weight: 700; letter-spacing: -.01em; }
+  .tag { color: var(--muted); font-size: 20px; }
+  .spacer { flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--line); font-size: 18px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--good); }
+  .pill.busy .dot { background: var(--warn); }
+  .pill.ready .dot { animation: pulse 2s ease-in-out infinite; }
+  .pill.thinking .dot { background: var(--accent); animation: pulse .8s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  .eye { grid-area: eye; padding: 14px; }
+  .eye .frame { position: relative; flex: 1; border-radius: 12px; overflow: hidden; background: #000; }
+  .eye img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .eye .hint { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 18px; }
+
+  .trace { grid-area: trace; }
+  .rows { font-family: var(--mono); font-variant-numeric: tabular-nums; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+  .row { display: grid; grid-template-columns: 52px 84px 1fr; align-items: baseline; gap: 12px; padding: 6px 10px;
+    border-radius: 8px; font-size: 22px; }
+  .row .seq { color: var(--muted); font-size: 16px; }
+  .row .key { font-weight: 700; color: var(--accent); }
+  .row .val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row.suspect { background: rgba(255,107,107,.12); }
+  .row.suspect .val { color: var(--bad); }
+  .row.deleted { opacity: .35; text-decoration: line-through; }
+  .row.newtest { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 12px; }
+
+  .rules { grid-area: rules; }
+  .rule-list { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+  .rule { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; border-radius: 10px;
+    border: 2px solid var(--line); font-size: 19px; transition: border-color .4s, background .4s; }
+  .rule .mark { font-weight: 800; width: 20px; flex: none; }
+  .rule.seen { border-style: solid; border-color: rgba(61,220,151,.55); }
+  .rule.seen .mark { color: var(--good); }
+  .rule.guessed { border-style: dashed; border-color: rgba(255,180,84,.6); }
+  .rule.guessed .mark { color: var(--warn); }
+  .rule.flip { background: rgba(61,220,151,.15); }
+  .empty { color: var(--muted); font-size: 18px; }
+
+  .score { grid-area: score; display: grid; grid-template-columns: 360px 1fr; gap: 28px; align-items: stretch; }
+  .big { display: flex; flex-direction: column; justify-content: center; }
+  .pct { font-size: 120px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+  .pct small { font-size: 52px; color: var(--muted); font-weight: 700; }
+  .delta { color: var(--good); font-size: 34px; font-weight: 700; height: 40px; }
+  .sub { color: var(--muted); font-size: 20px; margin-top: 6px; }
+  .sub b { color: var(--text); }
+  .right { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .bars { flex: 1; display: flex; align-items: flex-end; gap: 14px; padding-top: 8px; min-height: 0; }
+  .bar { flex: 1; max-width: 120px; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
+  .bar .fill { width: 100%; border-radius: 10px 10px 4px 4px; background: var(--line); height: 0;
+    transition: height .4s ease-out; position: relative; }
+  .bar.kept .fill { background: var(--accent); }
+  .bar.best .fill { background: var(--good); }
+  .bar .held { position: absolute; left: 0; right: 0; border-top: 3px dashed var(--text); opacity: .8; }
+  .bar .lbl { font-family: var(--mono); font-size: 18px; color: var(--muted); }
+  .bar .num { font-family: var(--mono); font-size: 18px; }
+  .ask { border-radius: 12px; padding: 14px 18px; background: rgba(124,140,255,.12); border: 1px solid rgba(124,140,255,.4);
+    font-size: 26px; display: none; }
+  .ask.on { display: block; }
+  .ask b { color: var(--accent); }
+
+  .flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .flash.on { opacity: .85; transition: none; }
+  .thumb { position: fixed; right: 28px; bottom: 28px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); transform: translateY(140%);
+    transition: transform .35s ease-out; text-align: center; }
+  .thumb.on { transform: none; }
+  .thumb img { max-height: 220px; border-radius: 8px; display: block; }
+  .thumb div { font-family: var(--mono); font-size: 22px; margin-top: 8px; }
+  .keys { position: fixed; left: 24px; bottom: 10px; font-size: 13px; color: #4b5266; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand">Clean Room</div>
+    <div class="tag">rebuilding software by watching it</div>
+    <div class="spacer"></div>
+    <div class="pill" id="brainPill" hidden><span class="dot"></span><span id="brainText">brain</span></div>
+    <div class="pill ready" id="statePill"><span class="dot"></span><span id="stateText">ready</span></div>
+  </div>
+
+  <section class="card eye">
+    <h2>What it sees</h2>
+    <div class="frame"><img id="preview" alt=""><div class="hint" id="previewHint">waiting for preview…</div></div>
+  </section>
+
+  <section class="card trace">
+    <h2>Observed <span id="lineCount"></span></h2>
+    <div class="rows" id="rows"><div class="empty">Press keys on the phone. Each one is read and logged here.</div></div>
+  </section>
+
+  <section class="card rules">
+    <h2>Rules it found &nbsp;<span style="color:var(--good)">✓ seen</span> &nbsp;<span style="color:var(--warn)">? guessed</span></h2>
+    <div class="rule-list" id="rules"><div class="empty">No rules yet.</div></div>
+  </section>
+
+  <section class="card score">
+    <div class="big">
+      <h2>Match on its own tests</h2>
+      <div class="pct"><span id="pct">–</span><small>%</small></div>
+      <div class="delta" id="delta"></div>
+      <div class="sub">on tests it never saw: <b id="held">–</b></div>
+    </div>
+    <div class="right">
+      <div class="ask" id="ask">The AI asks: <b id="askText"></b></div>
+      <div class="bars" id="bars"></div>
+    </div>
+  </section>
+</div>
+
+<div class="flash" id="flash"></div>
+<div class="thumb" id="thumb"><img id="thumbImg" alt=""><div id="thumbText"></div></div>
+<div class="keys">click once for sound · R run brain · T ask for a test · N new session</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const MAX_ROWS = 11, MAX_RULES = 9;
+let lines = [], rules = [], versions = [], soundOn = false, shownPct = 0;
+
+// ---------- small helpers (textContent only: rule text comes from a model) ----------
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function fmtPct(v) { return v == null ? '–' : (Math.round(v * 10) / 10).toString(); }
+
+let audio;
+function click() {
+  if (!soundOn) return;
+  audio = audio || new AudioContext();
+  const len = audio.sampleRate * 0.06, buf = audio.createBuffer(1, len, audio.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  const src = audio.createBufferSource(); src.buffer = buf; src.connect(audio.destination); src.start();
+}
+document.addEventListener('click', () => { soundOn = true; });
+
+// ---------- trace ----------
+function renderRows() {
+  const box = $('rows'); box.replaceChildren();
+  const shown = lines.slice(-MAX_ROWS);
+  if (!shown.length) { box.append(el('div', 'empty', 'Press keys on the phone. Each one is read and logged here.')); }
+  shown.forEach((l, i) => {
+    const prev = shown[i - 1];
+    const r = el('div', 'row' + (l.suspect ? ' suspect' : '') + (l.deleted ? ' deleted' : '') + (prev && prev.test !== l.test ? ' newtest' : ''));
+    const val = l.display == null ? 'unreadable' : l.display + (l.expression ? '   (' + l.expression + ')' : '');
+    r.append(el('span', 'seq', '#' + l.seq), el('span', 'key', l.key), el('span', 'val', val));
+    box.append(r);
+  });
+  $('lineCount').textContent = lines.length ? '· ' + lines.filter(l => !l.deleted).length + ' presses' : '';
+}
+
+// ---------- rules ----------
+function renderRules(flipIds = new Set()) {
+  const box = $('rules'); box.replaceChildren();
+  if (!rules.length) { box.append(el('div', 'empty', 'No rules yet.')); return; }
+  const ordered = [...rules].sort((a, b) => (a.status === 'seen' ? 0 : 1) - (b.status === 'seen' ? 0 : 1)).slice(0, MAX_RULES);
+  for (const r of ordered) {
+    const row = el('div', 'rule ' + r.status + (flipIds.has(r.rule) ? ' flip' : ''));
+    row.append(el('span', 'mark', r.status === 'seen' ? '✓' : '?'), el('span', null, r.rule));
+    box.append(row);
+  }
+}
+function setRules(next) {
+  const before = new Map(rules.map(r => [r.rule, r.status]));
+  const flips = new Set(next.filter(r => r.status === 'seen' && before.get(r.rule) === 'guessed').map(r => r.rule));
+  rules = next; renderRules(flips);
+}
+
+// ---------- score ----------
+function countTo(target) {
+  const start = shownPct, t0 = performance.now(), dur = 600;
+  const step = now => {
+    const k = Math.min(1, (now - t0) / dur), v = start + (target - start) * (1 - Math.pow(1 - k, 3));
+    $('pct').textContent = fmtPct(v);
+    if (k < 1) requestAnimationFrame(step); else shownPct = target;
+  };
+  requestAnimationFrame(step);
+}
+function renderBars() {
+  const box = $('bars'); box.replaceChildren();
+  const best = versions.reduce((b, v) => (v.train_pct ?? -1) > (b?.train_pct ?? -1) ? v : b, null);
+  for (const v of versions.slice(-8)) {
+    const bar = el('div', 'bar' + (v.kept ? ' kept' : '') + (v === best ? ' best' : ''));
+    const fill = el('div', 'fill');
+    if (v.held_pct != null) { const h = el('div', 'held'); h.style.bottom = v.held_pct + '%'; fill.append(h); }
+    bar.append(el('div', 'num', fmtPct(v.train_pct) + '%'), fill, el('div', 'lbl', 'v' + v.version));
+    box.append(bar);
+    requestAnimationFrame(() => { fill.style.height = Math.max(2, v.train_pct || 0) * 0.82 + '%'; });
+  }
+}
+function showScore(v) {
+  const prevBest = Math.max(-1, ...versions.slice(0, -1).filter(x => x.kept).map(x => x.train_pct ?? -1));
+  if (v.kept && prevBest >= 0 && v.train_pct > prevBest) {
+    $('delta').textContent = '+' + fmtPct(v.train_pct - prevBest);
+    setTimeout(() => { $('delta').textContent = ''; }, 3000);
+  }
+  if (v.kept) { countTo(v.train_pct ?? 0); $('held').textContent = v.held_pct == null ? '–' : fmtPct(v.held_pct) + '%'; }
+  renderBars();
+}
+
+// ---------- capture feedback ----------
+function flash(thumb, line) {
+  const f = $('flash'); f.classList.add('on'); requestAnimationFrame(() => setTimeout(() => f.classList.remove('on'), 30));
+  click();
+  if (thumb) {
+    $('thumbImg').src = 'data:image/jpeg;base64,' + thumb;
+    $('thumbText').textContent = '📸 ' + line.key + ' → ' + (line.display ?? '?');
+    $('thumb').classList.add('on');
+    clearTimeout(flash.t); flash.t = setTimeout(() => $('thumb').classList.remove('on'), 2000);
+  }
+}
+function setBusy(busy) {
+  $('statePill').className = 'pill ' + (busy ? 'busy' : 'ready');
+  $('stateText').textContent = busy ? 'reading…' : 'ready';
+}
+function setBrain(text, on) {
+  $('brainPill').hidden = !on && !text;
+  $('brainPill').className = 'pill' + (on ? ' thinking' : '');
+  $('brainText').textContent = text;
+}
+
+// ---------- server events ----------
+function connect() {
+  const es = new EventSource('/events');
+  es.addEventListener('state', e => setBusy(JSON.parse(e.data).busy));
+  es.addEventListener('capture', e => {
+    const d = JSON.parse(e.data); const l = d.line;
+    const i = lines.findIndex(x => x.seq === l.seq);
+    if (i >= 0) lines[i] = l; else lines.push(l);
+    renderRows(); flash(d.thumb, l);
+  });
+  es.addEventListener('undo', e => {
+    const l = JSON.parse(e.data).line; const i = lines.findIndex(x => x.seq === l.seq);
+    if (i >= 0) lines[i] = l; renderRows();
+  });
+  es.addEventListener('session', () => { lines = []; renderRows(); });
+  es.addEventListener('pick_test', e => {
+    const d = JSON.parse(e.data);
+    $('askText').textContent = d.instruction; $('ask').classList.add('on');
+  });
+  es.addEventListener('brain', e => {
+    const d = JSON.parse(e.data);
+    if (d.step === 'split') {
+      versions = []; renderBars(); shownPct = 0; $('pct').textContent = '–'; $('held').textContent = '–';
+      $('ask').classList.remove('on'); setBrain('writing rules…', true);
+    }
+    else if (d.step === 'rules') { setRules(d.rules); setBrain('writing a copy…', true); }
+    else if (d.step === 'score') { versions.push(d); showScore(d); setBrain('fixing v' + d.version + ' → v' + (d.version + 1) + '…', true); }
+    else if (d.step === 'done') { setBrain('best: v' + d.best_version, false); }
+    else if (d.step === 'failed' || d.step === 'fix_failed') { setBrain('brain error, kept best version', false); }
+  });
+  es.onerror = () => { setBusy(false); $('stateText').textContent = 'reconnecting…'; };
+}
+
+// ---------- keyboard controls for the presenter ----------
+async function post(path) {
+  const r = await fetch(path, {method: 'POST'});
+  if (!r.ok) setBrain((await r.json().catch(() => ({}))).detail || 'error', false);
+}
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'r') post('/brain/run');
+  else if (k === 't') { $('askText').textContent = 'thinking…'; $('ask').classList.add('on'); post('/brain/pick_test'); }
+  else if (k === 'n') post('/session/new');
+  else if (k === 'escape') $('ask').classList.remove('on');
+});
+
+// ---------- start ----------
+async function load() {
+  const img = $('preview');
+  img.onload = () => { $('previewHint').hidden = true; };
+  img.src = '/preview.mjpg';
+  try { const t = await (await fetch('/trace')).json(); lines = t.lines; setBusy(t.busy); renderRows(); } catch {}
+  try {
+    const calc = (await (await fetch('/scores')).json()).calc || [];
+    const lastRunStart = calc.map(v => v.round).lastIndexOf(0);
+    if (lastRunStart >= 0) {
+      versions = calc.slice(lastRunStart);
+      rules = versions[versions.length - 1].rules || []; renderRules();
+      const best = versions.filter(v => v.kept).pop();
+      if (best) { shownPct = best.train_pct ?? 0; $('pct').textContent = fmtPct(shownPct); $('held').textContent = best.held_pct == null ? '–' : fmtPct(best.held_pct) + '%'; }
+      renderBars();
+    }
+  } catch {}
+  connect();
+}
+load();
+</script>
+</body>
+</html>
