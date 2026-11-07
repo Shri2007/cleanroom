@@ -1,1 +1,296 @@
-<!-- Installable phone page running calc_best.js (Ali). -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="A calculator rebuilt from a trace, running entirely on your phone.">
+<title>Clean Room Calculator</title>
+<!-- Add to Home Screen on iOS (the manifest below covers Android/desktop). -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calculator">
+<style>
+  :root {
+    --bg: #000;
+    --key: #333336;
+    --key-hi: #737375;
+    --fn: #a5a5aa;
+    --fn-hi: #d1d1d6;
+    --op: #ff9f0a;
+    --op-hi: #ffc266;
+    --ink: #fff;
+    --muted: #8e8e93;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 10px)
+      calc(env(safe-area-inset-right, 0px) + 14px)
+      calc(env(safe-area-inset-bottom, 0px) + 16px)
+      calc(env(safe-area-inset-left, 0px) + 14px);
+  }
+  .bar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .bar h1 { margin: 0; font-size: 12px; font-weight: 600; }
+  .bar p { margin: 0; text-align: right; }
+  .screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 4px;
+    padding: 18px 6px 22px;
+    min-height: 30vh;
+  }
+  .expr {
+    min-height: 1.2em;
+    color: var(--muted);
+    font-size: clamp(14px, 4vw, 20px);
+    font-variant-numeric: tabular-nums;
+  }
+  .value {
+    max-width: 100%;
+    font-size: clamp(44px, 20vw, 84px);
+    font-weight: 200;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    text-align: right;
+  }
+  .value.small { font-size: clamp(28px, 12vw, 52px); }
+  .pad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(10px, 2.6vw, 16px);
+  }
+  .key {
+    appearance: none;
+    border: 0;
+    border-radius: 50%;
+    aspect-ratio: 1;
+    min-height: 62px;
+    font: inherit;
+    font-size: clamp(24px, 7vw, 32px);
+    font-weight: 400;
+    color: var(--ink);
+    background: var(--key);
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background-color 90ms ease-out;
+  }
+  .key:active, .key.hit { background: var(--key-hi); }
+  .key:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .key.fn { background: var(--fn); color: #000; font-size: clamp(20px, 6vw, 26px); }
+  .key.fn:active, .key.fn.hit { background: var(--fn-hi); }
+  .key.op { background: var(--op); font-size: clamp(28px, 8vw, 38px); font-weight: 500; }
+  .key.op:active, .key.op.hit { background: var(--op-hi); }
+  .key.op.active { background: #fff; color: var(--op); }
+  .key.zero {
+    grid-column: span 2;
+    border-radius: 999px;
+    text-align: left;
+    padding-left: 26%;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .key { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="bar">
+    <h1>Clean Room</h1>
+    <p>rebuilt from a trace &middot; runs offline in this page</p>
+  </header>
+
+  <div class="screen">
+    <div class="expr" id="expr"></div>
+    <div class="value" id="value" role="status" aria-live="polite">0</div>
+  </div>
+
+  <!-- Keypad: labels are the trace keys, so what you tap is what a trace records. -->
+  <div class="pad" id="pad">
+    <button class="key fn" type="button" data-key="AC" id="clear">AC</button>
+    <button class="key fn" type="button" data-key="+/-">+/&minus;</button>
+    <button class="key fn" type="button" data-key="%">%</button>
+    <button class="key op" type="button" data-key="&divide;">&divide;</button>
+
+    <button class="key" type="button" data-key="7">7</button>
+    <button class="key" type="button" data-key="8">8</button>
+    <button class="key" type="button" data-key="9">9</button>
+    <button class="key op" type="button" data-key="&times;">&times;</button>
+
+    <button class="key" type="button" data-key="4">4</button>
+    <button class="key" type="button" data-key="5">5</button>
+    <button class="key" type="button" data-key="6">6</button>
+    <button class="key op" type="button" data-key="&minus;">&minus;</button>
+
+    <button class="key" type="button" data-key="1">1</button>
+    <button class="key" type="button" data-key="2">2</button>
+    <button class="key" type="button" data-key="3">3</button>
+    <button class="key op" type="button" data-key="+">+</button>
+
+    <button class="key zero" type="button" data-key="0">0</button>
+    <button class="key" type="button" data-key=".">.</button>
+    <button class="key op" type="button" data-key="=">=</button>
+  </div>
+</main>
+
+<!-- The copy itself: same file the Node checker scores against a trace. -->
+<script src="calc_best.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var valueEl = document.getElementById("value");
+  var exprEl = document.getElementById("expr");
+  var padEl = document.getElementById("pad");
+
+  if (typeof createCalculator !== "function") {
+    valueEl.textContent = "calc_best.js missing";
+    return;
+  }
+  var calc = createCalculator();
+
+  function render() {
+    var s = calc.state();
+    valueEl.textContent = s.display;
+    valueEl.classList.toggle("small", s.display.length > 8);
+    exprEl.textContent = s.expression || "";
+    // The clear key sends whatever label it is showing — that is the key a camera
+    // pointed at this phone would read off it.
+    var clearBtn = document.getElementById("clear");
+    clearBtn.textContent = s.clear_label;
+    clearBtn.dataset.key = s.clear_label;
+    var ops = padEl.querySelectorAll(".op");
+    for (var i = 0; i < ops.length; i++) {
+      ops[i].classList.toggle("active", ops[i].dataset.key === s.active_op);
+    }
+  }
+
+  function tap(key) {
+    calc.press(key);
+    render();
+  }
+
+  padEl.addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-key]");
+    if (btn) tap(btn.dataset.key);
+  });
+
+  // Physical keyboard, mapped onto the same keys a trace records.
+  var KEYMAP = {
+    "*": "×", "/": "÷", "x": "×", "X": "×",
+    Enter: "=", "=": "=", Escape: "AC", Backspace: "⌫",
+  };
+  document.addEventListener("keydown", function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var key = /^[0-9.]$/.test(e.key) ? e.key : KEYMAP[e.key] || (e.key.length === 1 ? e.key : null);
+    if (key === null) return;
+    e.preventDefault();
+    tap(key);
+    var btn = padEl.querySelector('button[data-key="' + (key === "⌫" ? "" : key) + '"]');
+    if (btn) {
+      btn.classList.add("hit");
+      setTimeout(function () { btn.classList.remove("hit"); }, 120);
+    }
+  });
+
+  // --- installability -------------------------------------------------------
+  // The manifest is built here rather than shipped as a file so start_url/scope
+  // are absolute for whatever host serves this page (or file://), and so the
+  // icons are real PNGs without a second asset. Inline data URL: no fetch.
+  function rounded(g, x, y, w, h, r) {
+    g.beginPath();
+    if (g.roundRect) g.roundRect(x, y, w, h, r);
+    else g.rect(x, y, w, h);
+    g.fill();
+  }
+
+  function icon(size) {
+    var c = document.createElement("canvas");
+    c.width = c.height = size;
+    var g = c.getContext("2d");
+    var u = size / 192;
+    g.fillStyle = "#000000";
+    g.fillRect(0, 0, size, size);
+    g.fillStyle = "#ff9f0a"; // the display strip
+    rounded(g, 30 * u, 30 * u, 132 * u, 44 * u, 12 * u);
+    var dots = [[54, 116], [96, 116], [138, 116], [54, 158], [96, 158]];
+    g.fillStyle = "#a5a5aa";
+    for (var i = 0; i < dots.length; i++) {
+      g.beginPath();
+      g.arc(dots[i][0] * u, dots[i][1] * u, 15 * u, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = "#ff9f0a"; // the equals key
+    g.beginPath();
+    g.arc(138 * u, 158 * u, 15 * u, 0, Math.PI * 2);
+    g.fill();
+    return c.toDataURL("image/png");
+  }
+
+  try {
+    var manifest = {
+      name: "Clean Room Calculator",
+      short_name: "Calculator",
+      description: "A calculator rebuilt from a trace.",
+      start_url: location.href,
+      scope: new URL("./", location.href).href,
+      display: "standalone",
+      orientation: "portrait",
+      background_color: "#000000",
+      theme_color: "#000000",
+      icons: [
+        { src: icon(192), sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: icon(512), sizes: "512x512", type: "image/png", purpose: "any" },
+      ],
+    };
+    var link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = "data:application/manifest+json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(manifest));
+    document.head.appendChild(link);
+
+    var apple = document.createElement("link");
+    apple.rel = "apple-touch-icon";
+    apple.href = icon(180);
+    document.head.appendChild(apple);
+  } catch (err) {
+    // No canvas (or no data URLs): the calculator still works, it just won't offer
+    // an install prompt.
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
