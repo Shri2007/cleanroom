@@ -35,19 +35,29 @@ SOURCE = os.environ.get("CLEANROOM_SOURCE", "camera")
 if SOURCE not in ("camera", "screen"):
     raise SystemExit(f"CLEANROOM_SOURCE must be camera or screen, not {SOURCE!r}")
 MIRROR_APP = "iPhone Mirroring"
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:     [cleanroom] %(message)s")
 log = logging.getLogger("cleanroom")
 
 
 @asynccontextmanager
 async def lifespan(app):
-    if SOURCE == "camera" and not STILL:
+    use_camera = SOURCE == "camera" and not STILL
+    if use_camera:
         index = int(os.environ.get("CLEANROOM_CAMERA", "1"))
         try:
             camera.open(index)
         except Exception as e:  # keep serving; captures will log suspect lines
             log.error("camera %s failed to open: %s", index, e)
+    elif SOURCE == "screen" and not STILL:
+        if not Quartz.CGPreflightScreenCaptureAccess():
+            log.error("NO SCREEN RECORDING PERMISSION. System Settings > Privacy & Security > "
+                      "Screen & System Audio Recording > turn on your terminal app, then restart it.")
+        window = mirror_window_id()
+        log.info("screen source: %s", f"{MIRROR_APP} window {window}" if window else
+                 f"{MIRROR_APP} not open, will capture the whole screen")
     yield
-    camera.close()
+    if use_camera:
+        camera.close()
 
 
 app = FastAPI(title="Clean Room", lifespan=lifespan)
