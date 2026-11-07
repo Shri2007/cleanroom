@@ -16,6 +16,17 @@ PREVIEW_WIDTH = 720  # a monitor feed, not the evidence we send the reader
 PREVIEW_FPS = 15
 PREVIEW_QUALITY = 70
 FRAME_GRACE = 2.0  # seconds of failed reads before latest() calls it dead
+BLACK_LEVEL = 8  # a frame this dark is a covered/closed camera, not evidence
+
+
+def _is_black(frame):
+    """True for a missing or all-but-black frame (the lens is covered, or the feed died)."""
+    if frame is None or getattr(frame, "size", 0) == 0:
+        return True
+    try:
+        return int(frame.max()) <= BLACK_LEVEL
+    except (AttributeError, ValueError):
+        return False
 
 
 class CameraError(RuntimeError):
@@ -33,6 +44,7 @@ class Camera:
         self._frame = None
         self._seq = 0
         self._error = None
+        self._reconnect_used = False
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, name=f"camera-{index}", daemon=True)
 
@@ -53,13 +65,27 @@ class Camera:
                 ok, frame = False, None
                 reason = f"{type(e).__name__}: {e}"
             else:
-                reason = "camera stopped returning frames"
+                if not ok or frame is None:
+                    reason = "camera stopped returning frames"
+                elif _is_black(frame):
+                    reason = "camera returned black frames"
+                else:
+                    reason = None
 
-            if not ok or frame is None:
+            if reason is not None:
                 failing_since = failing_since if failing_since is not None else time.monotonic()
                 if time.monotonic() - failing_since >= FRAME_GRACE:
-                    with self._lock:
-                        self._error = reason
+                    if self._stop.is_set():
+                        break
+                    if not self._reconnect_used:
+                        # One retry per failure episode: unplug/replug, or a phone that
+                        # went to sleep, should not leave a stale frame on the preview.
+                        self._reconnect_used = True
+                        if self._reconnect():
+                            failing_since = None
+                            continue
+                    else:
+                        self._fail(reason)
                 self._stop.wait(0.05)
                 continue
 
@@ -68,6 +94,32 @@ class Camera:
                 self._frame = frame
                 self._seq += 1
                 self._error = None
+                self._reconnect_used = False
+
+    def _fail(self, reason):
+        """Make latest() raise instead of serving the frame that is no longer live."""
+        with self._lock:
+            self._error = reason
+            self._frame = None
+
+    def _reconnect(self):
+        """Open the capture device once more; return False if the retry failed."""
+        old = self._capture
+        try:
+            new = _open_capture(self.index)
+        except Exception as e:
+            self._fail(f"camera reconnect failed: {type(e).__name__}: {e}")
+            return False
+        if new is None or not new.isOpened():
+            if new is not None:
+                new.release()
+            self._fail("camera reconnect failed: camera did not open")
+            return False
+        with self._lock:
+            self._capture = new
+        if new is not old:
+            old.release()
+        return True
 
     def snapshot(self):
         """Newest (frame, seq) without raising: previews tolerate an empty camera."""
@@ -75,11 +127,12 @@ class Camera:
             return self._frame, self._seq
 
     def latest(self):
-        """Newest frame, or CameraError while the camera is still warming up."""
+        """Newest frame, or CameraError when the feed is gone (never a stale frame)."""
         frame, _ = self.snapshot()
-        if frame is None:
-            with self._lock:
-                raise CameraError(self._error or "no frame yet")
+        with self._lock:
+            error = self._error
+        if frame is None or error:
+            raise CameraError(error or "no frame yet")
         return frame
 
     def close(self):
