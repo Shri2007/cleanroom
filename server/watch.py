@@ -12,8 +12,12 @@ import numpy as np
 
 from server import brain
 
-CHANGE_THRESHOLD = 2.5   # mean pixel difference (0-255) in the display area that counts as a change
-DISPLAY_TOP, DISPLAY_BOTTOM = 0.10, 0.45  # display band of the phone window, below the status bar clock
+PIXEL_DELTA = 40         # a pixel "changed" if its gray level moved by more than this (0-255)
+CHANGED_SHARE = 0.002    # a screen changed if more than 0.2% of its pixels changed (one digit is ~1%)
+# Watch everything below the status bar clock: the display AND the keypad, because an operator press
+# only lights its key. The short press glow is filtered by waiting for the screen to hold still.
+DISPLAY_TOP, DISPLAY_BOTTOM = 0.10, 1.0
+SETTLE_FRAMES = 3  # identical screenshots in a row (~0.35 s) before a screen counts as settled
 
 DIGITS = set("0123456789")
 OPS = {"+", "-", "×", "÷"}
@@ -23,11 +27,15 @@ def signature(frame):
     """Small grayscale picture of the display band, for cheap change detection."""
     h = frame.shape[0]
     band = frame[int(h * DISPLAY_TOP):int(h * DISPLAY_BOTTOM)]
-    return cv2.resize(cv2.cvtColor(band, cv2.COLOR_BGR2GRAY), (96, 48), interpolation=cv2.INTER_AREA).astype(np.int16)
+    return cv2.resize(cv2.cvtColor(band, cv2.COLOR_BGR2GRAY), (160, 300), interpolation=cv2.INTER_AREA).astype(np.int16)
 
 
 def changed(a, b):
-    return a is None or b is None or float(np.abs(a - b).mean()) > CHANGE_THRESHOLD
+    return a is None or b is None or float((np.abs(a - b) > PIXEL_DELTA).mean()) > CHANGED_SHARE
+
+
+def same_reading(a, b):
+    return all(a.get(f) == b.get(f) for f in ("display", "expression", "clear_label", "active_op"))
 
 
 def _plain(text):

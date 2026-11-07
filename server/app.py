@@ -185,7 +185,7 @@ async def session_new():
     return {"path": trace.path.name}
 
 
-WATCH_PERIOD = 0.3  # seconds between screenshots while watching
+WATCH_PERIOD = 0.12  # seconds between screenshots while watching (a screenshot itself takes ~0.1 s)
 
 
 async def watch_loop():
@@ -195,42 +195,70 @@ async def watch_loop():
         emit("watch", {"on": False, "error": "no frame to watch"})
         state["watching"] = False
         return
-    prev, _ = await asyncio.to_thread(reader.read, frame)
-    seen, pending = watch.signature(frame), None
-    emit("watch", {"on": True, "display": prev.get("display")})
+    # The screenshot loop never waits for the reader: every settled screen goes into a queue,
+    # and the reader works through it in order, so fast typing is caught up afterwards, not lost.
+    queue = asyncio.Queue()
+    queue.put_nowait(frame)  # the starting screen, used only as the baseline for the first key
+    reader_task = asyncio.create_task(watch_reader(queue))
+    seen, pending, still = watch.signature(frame), None, 0
+    emit("watch", {"on": True})
     while state["watching"]:
         await asyncio.sleep(WATCH_PERIOD)
-        if state["busy"]:
-            continue
         frame = await asyncio.to_thread(grab_frame)
         if frame is None:
             continue
         sig = watch.signature(frame)
         if not watch.changed(sig, seen):
-            pending = None
+            pending, still = None, 0
             continue
         if pending is None or watch.changed(sig, pending):
-            pending = sig  # still changing: wait until two screenshots in a row agree
+            pending, still = sig, 1  # still changing (or glowing): wait for it to hold still
+            continue
+        still += 1
+        if still < watch.SETTLE_FRAMES:
+            continue
+        seen, pending, still = sig, None, 0
+        queue.put_nowait(frame)
+    queue.put_nowait(None)
+    await reader_task
+    emit("watch", {"on": False})
+
+
+async def watch_reader(queue):
+    """Read queued screens in order; log a line only when the reading really changed."""
+    prev, done = None, False
+    while not done:
+        frames = [await queue.get()]
+        while not queue.empty():
+            frames.append(queue.get_nowait())  # everything that piled up while we were reading
+        if frames[-1] is None:
+            frames.pop()
+            done = True
+        if not frames:
             continue
         set_busy(True)
         try:
-            reading, model = await asyncio.to_thread(reader.read, frame)
-            key = watch.infer_key(prev, reading) or await asyncio.to_thread(watch.ask_key, prev, reading)
-            seen, pending = sig, None
-            if key and reading.get("display") is not None:
-                line = state["trace"].append(key, reading)
-                emit("capture", {"thumb": reader.thumb(frame), "reading": reading, "model": model,
-                                 "line": line, "inferred": True})
-            else:
-                emit("watch", {"on": True, "skipped": reading.get("display")})
-            if reading.get("display") is not None:
+            # read them all at once, then log in screen order so key inference sees the right sequence
+            readings = await asyncio.gather(*(asyncio.to_thread(reader.read, f) for f in frames))
+            for frame, (reading, model) in zip(frames, readings):
+                if reading.get("display") is None:
+                    continue
+                if prev is None or watch.same_reading(prev, reading):
+                    prev = prev or reading  # baseline, or a re-detection of the same screen: not a key
+                    continue
+                key = watch.infer_key(prev, reading) or await asyncio.to_thread(watch.ask_key, prev, reading)
+                if key:
+                    line = state["trace"].append(key, reading)
+                    emit("capture", {"thumb": reader.thumb(frame), "reading": reading, "model": model,
+                                     "line": line, "inferred": True})
+                else:
+                    emit("watch", {"on": True, "skipped": reading.get("display")})
                 prev = reading
         except Exception as e:  # keep watching; show the problem
             log.exception("watch step failed")
             emit("watch", {"on": True, "error": f"{type(e).__name__}: {e}"[:200]})
         finally:
-            set_busy(False)
-    emit("watch", {"on": False})
+            set_busy(not queue.empty())
 
 
 @app.post("/watch/start")
