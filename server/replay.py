@@ -23,6 +23,36 @@ from server.trace import KEYS, READING_FIELDS, Trace, is_suspect
 SOURCE = "replay"  # lets a replayed trace be told apart from a live "camera" one
 
 
+class _ReplayTrace(Trace):
+    """A Trace that lets the replay pick each line's test number.
+
+    Trace numbers tests by counting AC keys, which is right for a live capture but wrong once a
+    suspect AC has been dropped: the test it started would silently merge into the one before it.
+    Everything else (seq, t, the suspect rule, saving) is still Trace.append.
+    """
+    planned_test = None
+
+    def _next_test(self, key):
+        return self.planned_test if self.planned_test is not None else super()._next_test(key)
+
+
+def plan_tests(lines):
+    """Test number for each kept line: contiguous from 1, with the saved test boundaries kept.
+
+    A new test starts at a line when it is an AC (the live rule) or when its saved `test` differs
+    from the previous kept line's. The second case is what keeps a test apart from its neighbour
+    after its suspect AC was dropped. Saved files with no `test` field fall back to the AC rule.
+    """
+    planned, number, previous = [], 0, None
+    for line in lines:
+        saved = line.get("test")
+        if number == 0 or line["key"] == "AC" or saved != previous:
+            number += 1
+        previous = saved
+        planned.append(number)
+    return planned
+
+
 def load(path):
     """Read a saved v2 trace. Returns its lines in file order.
 
@@ -65,13 +95,12 @@ def replay(saved, out_path):
     """Re-record a saved trace into a new file through `Trace.append`, with no vision.
 
     `saved` is a path or a list of lines from `load()`. Deleted and suspect lines are dropped (see
-    `usable`), so seq numbers restart at 1 and stay contiguous; test numbers are rebuilt from the AC
-    keys exactly as in a live run. Every kept line has suspect false and deleted false. Returns the
-    new Trace. Refuses to touch an existing file (a Trace would append to it) or the file it is
-    replaying.
-
-    Dropping a suspect AC line (the AC key is what starts a new test) merges that test into the one
-    before it, so the copy is not reset between them. The checker skips a suspect line too.
+    `usable`), so seq numbers restart at 1 and stay contiguous. Test boundaries are kept: dropping a
+    suspect AC does not merge the test it started into the one before, and test numbers are
+    renumbered from 1 without gaps (see `plan_tests`). That is what makes a replayed trace score
+    exactly what the original scores, because the checker runs each test on a fresh calculator.
+    Every kept line has suspect false and deleted false. Returns the new Trace. Refuses to touch an
+    existing file (a Trace would append to it) or the file it is replaying.
     """
     out_path = Path(out_path)
     if not isinstance(saved, list):
@@ -80,8 +109,10 @@ def replay(saved, out_path):
         saved = load(saved)
     if out_path.exists():
         raise FileExistsError(f"{out_path} already exists; a replay never appends to or overwrites a trace")
-    trace = Trace(out_path, source=SOURCE)
-    for line in usable(saved):
+    kept = usable(saved)
+    trace = _ReplayTrace(out_path, source=SOURCE)
+    for line, test in zip(kept, plan_tests(kept)):
+        trace.planned_test = test
         trace.append(line["key"], {field: line[field] for field in READING_FIELDS})
     return trace
 

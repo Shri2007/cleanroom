@@ -24,6 +24,22 @@ def write(path, rows):
     return path
 
 
+def trace_line(seq, test, key, display, clear="C", op=None, suspect=False):
+    return {"seq": seq, "test": test, "t": float(seq), "source": "camera", "key": key, "display": display,
+            "expression": None, "clear_label": clear, "active_op": op, "suspect": suspect, "deleted": False}
+
+
+# Test 1 stops mid-entry (2 + 3, no "="), so a calculator that is NOT reset between tests carries the
+# pending "+ 3" into test 2. Test 2's AC was misread (display "3", not 0), so it is flagged suspect.
+SUSPECT_AC_TRACE = [
+    trace_line(1, 1, "AC", "0", "AC"), trace_line(2, 1, "2", "2"), trace_line(3, 1, "+", "2", op="+"),
+    trace_line(4, 1, "3", "3"),
+    trace_line(5, 2, "AC", "3", "AC", suspect=True),
+    trace_line(6, 2, "4", "4"), trace_line(7, 2, "+", "4", op="+"), trace_line(8, 2, "1", "1"),
+    trace_line(9, 2, "=", "5"),
+]
+
+
 class LoadTest(unittest.TestCase):
     def test_sample_loads_unchanged(self):
         self.assertEqual(replay.load(SAMPLE), SAVED)
@@ -152,6 +168,89 @@ class ReplayTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             replay.replay(SAMPLE, SAMPLE)
         self.assertEqual(replay.load(SAMPLE), SAVED)
+
+
+class SuspectACBoundaryTest(unittest.TestCase):
+    """A suspect AC is dropped, but the test it started must stay a separate test.
+
+    The checker runs each test on a fresh calculator, so merging test 2 into test 1 carries test 1's
+    half-finished sum into it and a correct copy stops matching.
+    """
+
+    def replayed(self, rows=None):
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        out = Path(d.name) / "again.jsonl"
+        return replay.replay(list(SUSPECT_AC_TRACE if rows is None else rows), out), out
+
+    def test_the_two_tests_stay_separate_and_the_suspect_ac_stays_excluded(self):
+        trace, out = self.replayed()
+        self.assertEqual([(l["seq"], l["test"], l["key"]) for l in trace.lines],
+                         [(1, 1, "AC"), (2, 1, "2"), (3, 1, "+"), (4, 1, "3"),
+                          (5, 2, "4"), (6, 2, "+"), (7, 2, "1"), (8, 2, "=")])
+        self.assertEqual([l["key"] for l in trace.lines].count("AC"), 1)   # the suspect AC is gone
+        self.assertFalse(any(l["suspect"] for l in trace.lines))
+        self.assertEqual(replay.load(out), trace.lines)                    # and gone from the file too
+
+    def test_score_is_100_before_and_after_on_a_good_copy(self):
+        trace, out = self.replayed()
+        with tempfile.TemporaryDirectory() as d:
+            original = write(Path(d) / "orig.jsonl", SUSPECT_AC_TRACE)
+            before = replay.score(FIX / "calc_good.js", original)["all"]
+            after = replay.score(FIX / "calc_good.js", out)["all"]
+        self.assertEqual((before["match_pct"], before["matched"], before["total"]), (100.0, 8, 8))
+        self.assertEqual((after["match_pct"], after["matched"], after["total"]), (100.0, 8, 8))
+        self.assertEqual([t["test"] for t in after["tests"]], [1, 2])
+
+    def test_a_wrong_copy_scores_the_same_before_and_after(self):
+        # replay must not change a score in either direction, so a bad copy is not rescued either
+        trace, out = self.replayed()
+        with tempfile.TemporaryDirectory() as d:
+            original = write(Path(d) / "orig.jsonl", SUSPECT_AC_TRACE)
+            before = replay.score(FIX / "calc_bad.js", original)["all"]
+            after = replay.score(FIX / "calc_bad.js", out)["all"]
+        self.assertLess(before["match_pct"], 100)
+        self.assertEqual((before["matched"], before["total"]), (after["matched"], after["total"]))
+
+    def test_held_out_filtering_still_works_on_the_replayed_tests(self):
+        trace, out = self.replayed()
+        split = replay.score(FIX / "calc_good.js", out)
+        # test 1 is AC 2 + 3 (4 lines); test 2 is 4 + 1 = (4 lines, its suspect AC dropped)
+        self.assertEqual((split["train"]["match_pct"], split["train"]["total"]), (100.0, 4))
+        self.assertEqual((split["held_out"]["match_pct"], split["held_out"]["total"]), (100.0, 4))
+        chosen = replay.score(FIX / "calc_good.js", out, held_out=[1])
+        self.assertEqual((chosen["train"]["match_pct"], chosen["train"]["total"]), (100.0, 4))
+        self.assertEqual((chosen["held_out"]["match_pct"], chosen["held_out"]["total"]), (100.0, 4))
+        self.assertEqual(replay.score(FIX / "calc_good.js", out, held_out=[9])["held_out"], None)
+
+    def test_tests_stay_numbered_from_1_without_gaps_when_a_test_vanishes(self):
+        rows = [dict(r) for r in SUSPECT_AC_TRACE[:4]]
+        rows += [trace_line(5, 2, "AC", "9", "AC", suspect=True)]            # test 2 is only a suspect AC
+        rows += [trace_line(6, 3, "AC", "0", "AC"), trace_line(7, 3, "5", "5")]
+        trace, _ = self.replayed(rows)
+        self.assertEqual([l["test"] for l in trace.lines], [1, 1, 1, 1, 2, 2])
+        self.assertEqual([l["seq"] for l in trace.lines], list(range(1, 7)))
+
+    def test_a_suspect_ac_in_the_middle_of_three_tests(self):
+        rows = [dict(r) for r in SUSPECT_AC_TRACE]
+        rows += [dict(r, test=3, seq=r["seq"] + 9, suspect=False) for r in SUSPECT_AC_TRACE[:4]]
+        rows[9]["display"] = "0"                                              # test 3's AC is fine
+        trace, out = self.replayed(rows)
+        self.assertEqual([l["test"] for l in trace.lines], [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3])
+        with tempfile.TemporaryDirectory() as d:
+            original = write(Path(d) / "orig.jsonl", rows)
+            self.assertEqual(replay.score(FIX / "calc_good.js", original)["all"]["match_pct"],
+                             replay.score(FIX / "calc_good.js", out)["all"]["match_pct"])
+
+    def test_traces_without_test_numbers_still_split_at_ac(self):
+        rows = [{k: v for k, v in r.items() if k != "test"} for r in SAVED + SAVED]
+        trace, _ = self.replayed(rows)
+        self.assertEqual([l["test"] for l in trace.lines], [1] * 5 + [2] * 5)
+
+    def test_an_ac_in_the_middle_of_one_saved_test_still_starts_a_new_test(self):
+        rows = [dict(r, test=1) for r in SAVED + SAVED]                       # saved file says "test 1" throughout
+        trace, _ = self.replayed(rows)
+        self.assertEqual([l["test"] for l in trace.lines], [1] * 5 + [2] * 5)  # the live rule: AC starts a test
 
 
 class ScoreTest(unittest.TestCase):
