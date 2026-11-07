@@ -33,7 +33,9 @@ BRAINS = [  # (name, base_url, key env var, model, extra request args)
 FIELDS = ("display", "expression", "clear_label", "active_op")
 V1_LINES = 10      # v1 sees only the first ~10 taps, so the climb is honest
 MAX_ROUNDS = 4
-BANNED = re.compile(r"\b(require|import|process|fetch|setTimeout|setInterval|eval|Function|globalThis\.constructor)\b")
+MAX_PROMPT_LINES = 200
+BANNED = re.compile(r"\b(require|import|export|process|fetch|XMLHttpRequest|WebSocket|setTimeout|setInterval|"
+                    r"eval|Function|globalThis\.constructor)\b")
 
 _clients = {}
 last_brain = None  # which model answered the last call, shown on screen
@@ -74,13 +76,16 @@ def load(path):
 
 
 def usable(lines):
-    """Lines the brain may learn from and be scored on: not suspect, not undone, a real key."""
-    return [l for l in lines if not l["suspect"] and not l["deleted"] and l["key"] != "none"]
+    """Lines the brain may learn from and be scored on: not suspect, not undone.
+    A key "none" line is a snapshot with no press; the scorer reads the display without pressing."""
+    return [l for l in lines if not l["suspect"] and not l["deleted"]]
 
 
 def episodes(lines):
     """Renumber `test` so every clear back to 0 (AC, or C showing 0) starts a fresh test.
-    People clear with C as often as AC, and the held-out split needs several tests."""
+    People clear with C as often as AC, and the held-out split needs several tests.
+    Caveat: C can leave a pending operator, so these ids may not match the trace file.
+    Use AC between sequences in real runs."""
     out, test = [], 0
     for l in lines:
         if not out or (l["key"] in ("AC", "C") and l["display"] == "0"):
@@ -99,7 +104,7 @@ def split(lines, seed=1, held_frac=0.3):
 
 def fmt(lines):
     rows = ["seq|test|key|display|expression|clear_label|active_op"]
-    rows += ["|".join(str(l.get(k)) for k in ("seq", "test", "key", *FIELDS)) for l in lines]
+    rows += ["|".join(str(l.get(k)) for k in ("seq", "test", "key", *FIELDS)) for l in lines[-MAX_PROMPT_LINES:]]
     return "\n".join(rows)
 
 
@@ -177,7 +182,8 @@ process.stdin.on('data', d => buf += d).on('end', () => {
       vm.runInContext(code, ctx, {timeout: 1000});
       ctx.rows = rows;
       const got = JSON.parse(vm.runInContext(
-        'Calc.reset(); JSON.stringify(rows.map(r => { Calc.press(r.key); return Calc.render(); }))', ctx, {timeout: 1000}));
+        'Calc.reset(); JSON.stringify(rows.map(r => { if (r.key !== "none") Calc.press(r.key); return Calc.render(); }))',
+        ctx, {timeout: 1000}));
       rows.forEach((r, i) => {
         total++;
         const g = got[i] || {};
@@ -202,7 +208,7 @@ def _score_standin(code, lines):
     try:
         result = subprocess.run(["node", "--permission", "-e", _SCORER],
                                 input=json.dumps({"code": code, "lines": lines}), capture_output=True,
-                                text=True, timeout=5, env={"PATH": os.environ.get("PATH", "")})
+                                text=True, timeout=2, env={"PATH": os.environ.get("PATH", "")})
     except subprocess.TimeoutExpired:
         return {"error": "timeout", "match_pct": 0, "mismatches": []}
     if result.returncode:
@@ -225,12 +231,20 @@ def score(code, lines, tests):
 
 # ---------- the loop ----------
 
+def load_history():
+    history = json.loads(SCORES.read_text()) if SCORES.exists() and SCORES.read_text().strip() else {}
+    return history if isinstance(history, dict) else {}
+
+
+def next_version():
+    """Versions keep counting across runs, so a rerun never overwrites an old copy."""
+    return max((v["version"] for v in load_history().get("calc", [])), default=0) + 1
+
+
 def save_version(version, code, rules, round_no, train, held, keep):
     COPIES.mkdir(exist_ok=True)
     (COPIES / f"calc_v{version}.js").write_text(code)
-    history = json.loads(SCORES.read_text()) if SCORES.exists() and SCORES.read_text().strip() else {}
-    if not isinstance(history, dict):
-        history = {}
+    history = load_history()
     history.setdefault("calc", []).append({
         "version": version, "round": round_no, "file": f"calc_v{version}.js",
         "train_pct": train["match_pct"], "held_pct": held["match_pct"], "kept": keep,
@@ -248,10 +262,11 @@ def run_loop(trace_path, on_event=print):
     on_event({"step": "rules", "rules": rules})
     code = write_copy(rules, train[:V1_LINES])
     best = None
+    first_version = next_version()
     for round_no in range(MAX_ROUNDS + 1):
         tr, he = score(code, lines, train_ids), score(code, lines, held_ids)
         improved = best is None or tr["match_pct"] > best["train"]["match_pct"]
-        version = round_no + 1
+        version = first_version + round_no
         save_version(version, code, rules, round_no, tr, he, improved)
         on_event({"step": "score", "version": version, "train_pct": tr["match_pct"],
                   "held_pct": he["match_pct"], "kept": improved, "brain": last_brain, "error": tr.get("error")})
@@ -259,7 +274,8 @@ def run_loop(trace_path, on_event=print):
             best = {"version": version, "code": code, "train": tr, "held": he, "stale": 0}
         else:
             best["stale"] += 1
-        if best["train"]["match_pct"] == 100 or best["stale"] >= 2 or round_no == MAX_ROUNDS:
+        held_pass = best["held"]["match_pct"] in (None, 100)
+        if (best["train"]["match_pct"] == 100 and held_pass) or best["stale"] >= 2 or round_no == MAX_ROUNDS:
             break
         if round_no == 0:  # after v1, the brain gets every training line
             rules = find_rules(train)
