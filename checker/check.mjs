@@ -179,7 +179,8 @@ const asInt = (v, lo, hi) => (Number.isInteger(v) && v >= lo && v <= hi ? v : nu
 export function runJob({ target, code, lines, tests = null }) {
   if (target !== "calc" && target !== "cal") throw new Error(`unknown target ${JSON.stringify(target)}`);
   const only = tests == null ? null : new Set(tests);
-  const usable = lines.filter((l) => !l.deleted && !l.suspect && (!only || only.has(l.test)));
+  const inScope = lines.filter((l) => !only || only.has(l.test)); // lines of the tests being scored
+  const usable = inScope.filter((l) => !l.deleted && !l.suspect);
   const started = Date.now();
   const late = () => Date.now() - started > JOB_DEADLINE_MS;
   const results = new Map(); // test -> pass
@@ -188,10 +189,15 @@ export function runJob({ target, code, lines, tests = null }) {
   const record = (test, ok) => results.set(test, (results.get(test) ?? true) && ok);
 
   if (target === "cal") {
+    // Each line runs in a fresh context so no state leaks between dates. If the code cannot even
+    // load, every line would fail the same way, so find that out once instead of once per line.
+    let loadError = null;
+    try { jobContext(code); } catch (e) { loadError = String(e.message ?? e); }
     for (const l of usable) {
       let got = null, error = null;
       const m = asInt(l.args?.[0], 1, 12), y = asInt(l.args?.[1], 1, 9999);
       try {
+        if (loadError) throw new Error(loadError);
         if (m === null || y === null || l.args.length !== 2) throw new Error("bad args");
         if (late()) throw new Error("checker deadline exceeded");
         const r = vm.runInContext(`JSON.stringify(Cal.run(${m}, ${y}))`, jobContext(code), { timeout: JOB_CALL_MS });
@@ -236,7 +242,7 @@ export function runJob({ target, code, lines, tests = null }) {
   return {
     mode: target,
     match_pct: total ? Math.round((matched / total) * 10000) / 100 : 0,
-    matched, total, skipped: lines.length - total,
+    matched, total, skipped: inScope.length - total, // deleted or suspect lines among the scored tests
     tests: [...results].map(([test, pass]) => ({ test, pass })),
     mismatches,
   };

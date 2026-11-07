@@ -80,6 +80,33 @@ class RunCalcTest(unittest.TestCase):
         self.assertEqual((r["match_pct"], len(r["tests"])), (100.0, 2))
 
 
+    def three_tests_with_a_wrong_held_out(self):
+        rows = [dict(r, test=n, seq=r["seq"] + 5 * (n - 1)) for n in (1, 2, 3) for r in SAMPLE]
+        for r in rows:
+            if r["test"] == 3 and r["key"] == "=":
+                r["display"] = "99"  # only test 3, the held-out one, disagrees with the copy
+        return rows
+
+    def test_train_and_held_out_are_scored_separately(self):
+        rows = self.three_tests_with_a_wrong_held_out()
+        train = checker.run("calc", CALC_GOOD, rows, tests=[1, 2])
+        held = checker.run("calc", CALC_GOOD, rows, tests=[3])
+        self.assertEqual((train["match_pct"], train["matched"], train["total"]), (100.0, 10, 10))
+        self.assertEqual((held["match_pct"], held["matched"], held["total"]), (80.0, 4, 5))
+        self.assertEqual([t["test"] for t in train["tests"]], [1, 2])
+        self.assertEqual([t["test"] for t in held["tests"]], [3])
+        self.assertEqual(checker.run("calc", CALC_GOOD, rows)["matched"], 14)  # all three together
+
+    def test_skipped_counts_only_deleted_and_suspect_lines_of_the_scored_tests(self):
+        rows = self.three_tests_with_a_wrong_held_out()
+        rows[0]["deleted"] = True
+        rows[1]["suspect"] = True
+        rows[7]["suspect"] = True  # a test-2 line: outside tests=[1], so not counted
+        r = checker.run("calc", CALC_GOOD, rows, tests=[1])
+        self.assertEqual((r["total"], r["skipped"]), (3, 2))
+        self.assertEqual(checker.run("calc", CALC_GOOD, rows)["skipped"], 3)
+
+
 class RunCalTest(unittest.TestCase):
     def test_exact_copy_scores_100(self):
         r = checker.run("cal", cal_table([l["output"] for l in CAL_LINES]), CAL_LINES)
@@ -126,6 +153,15 @@ class RunRobustnessTest(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 10)
         self.assertLess(r["match_pct"], 100)
         self.assertTrue(any("timed out" in json.dumps(m) for m in r["mismatches"]))
+
+    def test_copy_that_hangs_at_load_fails_fast_for_every_line(self):
+        for target, lines, limit in (("calc", SAMPLE, 3), ("cal", CAL_LINES * 4, 3)):
+            started = time.monotonic()
+            r = checker.run(target, "while (true) {}", lines)
+            with self.subTest(target):
+                self.assertLess(time.monotonic() - started, limit)  # one load attempt, not one per line
+                self.assertEqual((r["match_pct"], len(r["mismatches"])), (0, len(lines)))
+                self.assertIn("timed out", json.dumps(r["mismatches"][0]))
 
     def test_bad_calls_raise_value_error(self):
         with self.assertRaises(ValueError):
