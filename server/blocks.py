@@ -17,12 +17,15 @@ FILLED_VALUE = 120  # HSV value: empty cells are ~40-70, blocks are 150+
 SCORE_BOX = (180 / 652, 230 / 1440, 472 / 652, 360 / 1440)  # the big score number
 
 
-def read_score(frame):
+def read_score(frame, box=None):
     """The big score number, read by the Meta reader from a crop. None if unreadable."""
     import json
     from server import reader
     h, w = frame.shape[:2]
-    x0, y0, x1, y1 = int(SCORE_BOX[0] * w), int(SCORE_BOX[1] * h), int(SCORE_BOX[2] * w), int(SCORE_BOX[3] * h)
+    if box:
+        x0, y0, x1, y1 = box
+    else:
+        x0, y0, x1, y1 = int(SCORE_BOX[0] * w), int(SCORE_BOX[1] * h), int(SCORE_BOX[2] * w), int(SCORE_BOX[3] * h)
     img = reader._jpeg_b64(frame[y0:y1, x0:x1])
     msgs = [{"role": "user", "content": [
         {"type": "text", "text": 'Read the number in this image. JSON only: {"score": <integer or null>}'},
@@ -69,10 +72,84 @@ def watch(out_path, seconds=900, period=0.08):
         time.sleep(period)
 
 
-def read_board(frame):
-    """8 strings of '#' (filled) and '.' (empty), top row first."""
+def find_grid(frame):
+    """Locate the 8x8 grid in any screenshot or recording frame: the largest dark, square-ish panel.
+    Use a frame where the board is mostly empty (the start of a game). Returns pixel (x0, y0, x1, y1)."""
     h, w = frame.shape[:2]
-    x0, y0, x1, y1 = GRID[0] * w, GRID[1] * h, GRID[2] * w, GRID[3] * h
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    dark = cv2.inRange(hsv, (0, 0, 0), (180, 255, 95))
+    dark = cv2.morphologyEx(dark, cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8))
+    contours, _ = cv2.findContours(dark, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    best = None
+    for c in contours:
+        x, y, cw, ch = cv2.boundingRect(c)
+        if cw > 0.6 * w and 0.85 < cw / ch < 1.15 and (best is None or cw * ch > best[2] * best[3]):
+            best = (x, y, cw, ch)
+    if best is None:
+        raise ValueError("could not find the board; use a frame from the start of a game")
+    x, y, cw, ch = best
+    return (x, y, x + cw, y + ch)
+
+
+def score_box(grid):
+    """The score sits centered above the grid; same proportions in the mirror and in a phone recording."""
+    x0, y0, x1, y1 = grid
+    gw, gh = x1 - x0, y1 - y0
+    return (int(x0 + 0.233 * gw), int(y0 - 0.293 * gh), int(x0 + 0.764 * gw), int(y0 - 0.058 * gh))
+
+
+def watch_video(video_path, out_path, fps=15):
+    """Same as watch(), but from a phone screen recording: play normally, record, AirDrop, run this.
+    The grid is found automatically on the first frames, so the layout doesn't have to match the mirror."""
+    import json
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        raise ValueError(f"cannot open {video_path}")
+    src_fps = cap.get(cv2.CAP_PROP_FPS) or 30
+    stride = max(1, round(src_fps / fps))
+    grid, out = None, open(out_path, "a")
+    last, last_logged, stable, seq, index = None, None, 0, 0, 0
+    settle = max(3, fps // 3)  # ~0.33 s of identical boards
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            break
+        index += 1
+        if index % stride:
+            continue
+        if grid is None:
+            try:
+                grid = find_grid(frame)
+                box = score_box(grid)
+                print("grid found at", grid, flush=True)
+            except ValueError:
+                continue
+        board = read_board(frame, grid)
+        if board != last:
+            last, stable = board, 1
+            if board != last_logged:
+                seq += 1
+                out.write(json.dumps({"seq": seq, "t": round(index / src_fps, 2), "board": board}) + "\n")
+                last_logged = board
+                print(f"#{seq}  " + " ".join(board), flush=True)
+        else:
+            stable += 1
+            if stable == settle:
+                score = read_score(frame, box)
+                out.write(json.dumps({"seq": seq, "settled": True, "score": score}) + "\n")
+                print(f"    score {score}", flush=True)
+        out.flush()
+    print("done:", seq, "boards", flush=True)
+
+
+def read_board(frame, grid=None):
+    """8 strings of '#' (filled) and '.' (empty), top row first. `grid` is a pixel box from find_grid;
+    without it, the fixed iPhone Mirroring layout is used."""
+    h, w = frame.shape[:2]
+    if grid:
+        x0, y0, x1, y1 = grid
+    else:
+        x0, y0, x1, y1 = GRID[0] * w, GRID[1] * h, GRID[2] * w, GRID[3] * h
     cw, ch = (x1 - x0) / N, (y1 - y0) / N
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     rows = []
@@ -219,4 +296,7 @@ def score(code, ms):
 
 if __name__ == "__main__":
     import sys
-    watch(sys.argv[1] if len(sys.argv) > 1 else "traces/blocks.jsonl")
+    if len(sys.argv) > 1 and sys.argv[1] == "video":  # python -m server.blocks video rec.mov out.jsonl
+        watch_video(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else "traces/blocks_video.jsonl")
+    else:
+        watch(sys.argv[1] if len(sys.argv) > 1 else "traces/blocks.jsonl")
