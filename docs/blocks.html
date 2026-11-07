@@ -1,0 +1,152 @@
+<!doctype html>
+<!-- Play the AI's copy of a block puzzle game (Shri). The board, line clears and points come from
+     blocks_copy.js, which an AI wrote by watching real games. Only the random pieces come from this page:
+     piece spawning is random, so the copy never learned it. No logos, no brand names. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#3b4a8f">
+<title>Blocks: played on the AI's copy</title>
+<style>
+  :root { --bg: #3b4a8f; --grid: #232646; --cell: #2a2e55; --line: #1b1e3a; --text: #fff; --muted: #c5cbef; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
+  body { display: grid; place-items: center; }
+  .game { width: min(100vw, 420px); padding: 20px 18px 28px; display: flex; flex-direction: column; gap: 18px; }
+  .top { display: flex; justify-content: space-between; align-items: baseline; }
+  .score { font-size: 54px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .gain { color: #ffd166; font-size: 22px; font-weight: 700; height: 26px; opacity: 0;
+    transition-property: opacity, transform; transition-duration: 300ms; transition-timing-function: ease-out; }
+  .gain.on { opacity: 1; transform: translateY(-4px); }
+  .tag { font-size: 12px; color: var(--muted); text-align: right; line-height: 1.4; }
+  .board { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; padding: 6px; border-radius: 14px;
+    background: var(--grid); box-shadow: inset 0 0 0 2px var(--line); }
+  .c { aspect-ratio: 1; border-radius: 5px; background: var(--cell);
+    transition-property: background-color, transform; transition-duration: 160ms; }
+  .c.on { background: var(--col, #9b6bff); box-shadow: inset 0 -4px 0 rgba(0,0,0,.25), inset 0 3px 0 rgba(255,255,255,.25); }
+  .c.ghost { background: rgba(255,255,255,.28); }
+  .c.bad { background: rgba(255,90,90,.35); }
+  .c.pop { transform: scale(.6); }
+  .tray { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; min-height: 110px; align-items: center; }
+  .piece { display: grid; gap: 3px; justify-self: center; padding: 8px; border-radius: 12px; cursor: pointer;
+    transition-property: transform, background-color, opacity; transition-duration: 150ms; }
+  .piece:hover { background: rgba(255,255,255,.08); }
+  .piece:active { transform: scale(.96); }
+  .piece.sel { background: rgba(255,255,255,.16); }
+  .piece.used { opacity: 0; pointer-events: none; }
+  .piece .p { width: 18px; height: 18px; border-radius: 4px; }
+  .piece .p.on { background: var(--col); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
+  .over { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(20,24,52,.82);
+    opacity: 0; pointer-events: none; transition-property: opacity; transition-duration: 200ms; }
+  .over.on { opacity: 1; pointer-events: auto; }
+  .over div { text-align: center; } .over h2 { font-size: 34px; margin: 0 0 8px; }
+  .over button { margin-top: 18px; font: 600 18px system-ui; padding: 12px 22px; border-radius: 999px; border: 0;
+    background: #ffd166; color: #222; cursor: pointer; }
+  .help { font-size: 13px; color: var(--muted); text-align: center; text-wrap: pretty; }
+</style>
+</head>
+<body>
+<main class="game">
+  <div class="top">
+    <div><div class="score" id="score">0</div><div class="gain" id="gain"></div></div>
+    <div class="tag">board, clears &amp; points:<br><b>the AI's copy</b><br>pieces: random</div>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="tray" id="tray"></div>
+  <div class="help">Tap a piece, then tap where its top-left corner should go.</div>
+</main>
+<div class="over" id="over"><div><h2>No moves left</h2><div id="final"></div><button id="again">Play again</button></div></div>
+<script src="blocks_copy.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const SHAPES = [
+  [[0,0]], [[0,0],[0,1]], [[0,0],[1,0]], [[0,0],[0,1],[0,2]], [[0,0],[1,0],[2,0]],
+  [[0,0],[0,1],[1,0],[1,1]], [[0,0],[0,1],[0,2],[0,3]], [[0,0],[1,0],[2,0],[3,0]],
+  [[0,0],[1,0],[1,1]], [[0,1],[1,0],[1,1]], [[0,0],[0,1],[1,0]], [[0,0],[0,1],[1,1]],
+  [[0,0],[1,0],[2,0],[2,1]], [[0,1],[1,1],[2,1],[2,0]], [[0,0],[0,1],[0,2],[1,1]],
+  [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]], [[0,0],[0,1],[0,2],[0,3],[0,4]],
+];
+const COLORS = ['#9b6bff', '#ff9f43', '#ffd166', '#4dabf7', '#51cf66', '#ff6b6b', '#38d9a9'];
+let board, score, tray, selected = null, cells = [];
+
+for (let i = 0; i < 64; i++) {
+  const c = document.createElement('div'); c.className = 'c';
+  c.addEventListener('pointerenter', () => preview(Math.floor(i / 8), i % 8));
+  c.addEventListener('pointerdown', e => { e.preventDefault(); place(Math.floor(i / 8), i % 8); });
+  $('board').append(c); cells.push(c);
+}
+$('board').addEventListener('pointerleave', () => draw());
+$('again').addEventListener('click', start);
+
+function start() {
+  board = Array(8).fill('........'); score = 0; colors = {};
+  $('over').classList.remove('on'); newTray(); draw();
+}
+let colors = {};
+function newTray() {
+  tray = [0, 1, 2].map(() => ({ shape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
+    col: COLORS[Math.floor(Math.random() * COLORS.length)], used: false }));
+  selected = null; drawTray();
+}
+function drawTray() {
+  const t = $('tray'); t.replaceChildren();
+  tray.forEach((p, i) => {
+    const h = Math.max(...p.shape.map(s => s[0])) + 1, w = Math.max(...p.shape.map(s => s[1])) + 1;
+    const el = document.createElement('div');
+    el.className = 'piece' + (p.used ? ' used' : '') + (selected === i ? ' sel' : '');
+    el.style.gridTemplateColumns = `repeat(${w}, 18px)`; el.style.setProperty('--col', p.col);
+    for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) {
+      const b = document.createElement('div');
+      b.className = 'p' + (p.shape.some(s => s[0] === r && s[1] === c) ? ' on' : '');
+      el.append(b);
+    }
+    el.addEventListener('pointerdown', e => { e.preventDefault(); selected = selected === i ? null : i; drawTray(); });
+    t.append(el);
+  });
+}
+function cellsFor(p, r, c) { return p.shape.map(([dr, dc]) => [r + dr, c + dc]); }
+function fits(cs) { return cs.every(([r, c]) => r >= 0 && r < 8 && c >= 0 && c < 8 && board[r][c] === '.'); }
+function draw(ghost = [], ok = true) {
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const el = cells[r * 8 + c], on = board[r][c] === '#';
+    el.className = 'c' + (on ? ' on' : '');
+    el.style.setProperty('--col', colors[r * 8 + c] || '#9b6bff');
+  }
+  for (const [r, c] of ghost) if (r >= 0 && r < 8 && c >= 0 && c < 8) cells[r * 8 + c].classList.add(ok ? 'ghost' : 'bad');
+}
+function preview(r, c) {
+  if (selected === null) return;
+  const cs = cellsFor(tray[selected], r, c); draw(cs, fits(cs));
+}
+function place(r, c) {
+  if (selected === null) return;
+  const p = tray[selected], cs = cellsFor(p, r, c);
+  if (!fits(cs)) return;
+  // The AI's copy decides the next board and the points.
+  let result;
+  try { result = globalThis.Blocks.step(board.slice(), cs); }
+  catch (e) { console.warn('copy failed', e); return; }
+  for (const [rr, cc] of cs) colors[rr * 8 + cc] = p.col;
+  const cleared = [];
+  for (let i = 0; i < 64; i++) if (board[Math.floor(i / 8)][i % 8] === '#' || cs.some(([a, b]) => a * 8 + b === i))
+    if (result.board[Math.floor(i / 8)][i % 8] === '.') cleared.push(i);
+  board = result.board; score += result.points;
+  $('score').textContent = score;
+  $('gain').textContent = '+' + result.points; $('gain').classList.add('on');
+  clearTimeout(place.t); place.t = setTimeout(() => $('gain').classList.remove('on'), 700);
+  p.used = true; selected = null;
+  draw();
+  for (const i of cleared) { delete colors[i]; cells[i].classList.add('pop'); setTimeout(() => cells[i].classList.remove('pop'), 160); }
+  if (tray.every(t => t.used)) newTray(); else drawTray();
+  if (!canMove()) { $('final').textContent = 'Score ' + score; $('over').classList.add('on'); }
+}
+function canMove() {
+  return tray.some(p => !p.used && [...Array(64).keys()].some(i => fits(cellsFor(p, Math.floor(i / 8), i % 8))));
+}
+start();
+</script>
+</body>
+</html>
