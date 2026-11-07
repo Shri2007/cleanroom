@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ANNOUNCED = set()
@@ -11,7 +12,7 @@ ANNOUNCED = set()
 
 def need(message):
     if message not in ANNOUNCED:
-        print(f'NEED from teammate: {message}', flush=True)
+        print(f'NEED from Shri: {message}', flush=True)
         ANNOUNCED.add(message)
 
 
@@ -33,6 +34,17 @@ def calendar(dates):
     runner = function('explorer.cal_runner', 'run')
     if runner:
         return runner(dates)
+    trace_runner = function('explorer.cal_runner', 'trace_lines')
+    if trace_runner:
+        rows = trace_runner(dates)
+        if len(rows) != len(dates):raise ValueError('Calendar runner returned wrong row count')
+        canonical = []
+        for seq, (row, date) in enumerate(zip(rows, dates), 1):
+            if row.get('suspect') or not isinstance(row.get('display'), str):
+                raise ValueError('Calendar target read failed')
+            canonical.append(dict(seq=seq, test=seq, source='text', args=list(date),
+                                  output=row['display'], deleted=False))
+        return canonical
     need('explorer.cal_runner.run(dates) -> list[dict]; using the agent-local calendar adapter')
     rows = []
     for seq, (month, year) in enumerate(dates, 1):
@@ -48,6 +60,23 @@ def check_cal(code, lines, tests):
     runner = function('server.checker', 'run')
     if runner:
         result = runner('cal', code, lines, tests)
+    elif function('server.checker', 'check'):
+        # Adapt to Ali's path-based API without editing checker/ or copies/.
+        folder = ROOT / 'agent' / '.runtime'
+        folder.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix='verify-', dir=folder) as temporary:
+            path = Path(temporary)
+            copy = path / 'candidate.js'
+            trace = path / 'held-out.jsonl'
+            bridge = '\nif (globalThis.Cal && typeof globalThis.Cal.run === "function") { module.exports = (month,year) => globalThis.Cal.run(month,year); }\n'
+            copy.write_text(code + bridge)
+            legacy = [dict(seq=row['seq'],test=row['test'],source='cal',
+                           key=f"{row['args'][0]} {row['args'][1]}",display=row['output'],
+                           suspect=False,deleted=row.get('deleted',False)) for row in lines]
+            trace.write_text(''.join(json.dumps(row)+'\n' for row in legacy))
+            result = function('server.checker','check')(copy, trace, tests=tests, mode='cal')
+        for row in result.get('tests',[]):
+            if 'pass' not in row:row['pass'] = row.get('lines',0)>0 and row.get('matched')==row['lines']
     else:
         need('server.checker.run("cal", code, lines, tests); using the agent-local isolated checker')
         process = subprocess.run(
