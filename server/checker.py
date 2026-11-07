@@ -32,15 +32,18 @@ def test_ids(trace_path):
     return sorted(ids)
 
 
-def check(copy_path, trace_path=DEFAULT_TRACE, tests=None):
+def check(copy_path, trace_path=DEFAULT_TRACE, tests=None, mode=None):
     """Run a copy against a trace. Returns the report dict from check.mjs.
 
-    `tests` limits the run to those test numbers (None = all). match_pct is a
+    `tests` limits the run to those test numbers (None = all). `mode` is "calc" or "cal";
+    None picks it from the trace (all lines source "cal" -> cal). match_pct is a
     percentage 0-100, or None when no lines were compared.
     """
     cmd = ["node", str(CHECK_MJS), str(copy_path), str(trace_path)]
     if tests is not None:
         cmd += ["--tests", ",".join(str(t) for t in tests)]
+    if mode is not None:
+        cmd += ["--mode", mode]
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
