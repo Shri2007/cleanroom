@@ -31,7 +31,7 @@ The held-out set includes February/September dates in 1700, 1751 and 1753, plus 
 
 Commands: rebuild cal, rebuild today-run, status, rules, score, tests. Unknown rebuild targets return exactly `Unknown target.` Owner-only start/reset/test compare the authenticated sender to OWNER_ADDRESS. Today-run replay and owner controls remain explicit NEED adapters until supplied. No chat text reaches shell/eval/exec. One rebuild at a time; ten messages per rolling minute per sender. Every stage has a timeout and one retry; successful jobs are cached to avoid repeating side effects on delivery retries.
 
-Mailbox registration has been confirmed in live logs. The real-brain workflow still needs a new successful ASI:One transcript after switching off implicit stub fallback. Local SDK tests are not represented as ASI:One conversations.
+Mailbox registration has been confirmed in live logs. The real-brain local workflow passed (38.1% → 100% train, independent 9/9 held-out). The new ASI:One web-chat transcript is still pending. See VERIFICATION.md. Local SDK tests are not represented as ASI:One conversations.
 
 ## Verify and freeze
 
