@@ -2,18 +2,24 @@
 
 Run: uv run uvicorn server.app:app --host 127.0.0.1 --port 8000
 
-Camera: Ali's server.camera, opened at startup on CLEANROOM_CAMERA (default 1, the iPhone).
+Frame sources (CLEANROOM_SOURCE):
+- camera (default): Ali's server.camera, opened at startup on CLEANROOM_CAMERA (default 1).
+- screen: a screenshot of the iPhone Mirroring window (whole screen if it isn't open).
+  macOS asks once for Screen Recording permission for the terminal.
 Set CLEANROOM_FRAME=<path to a jpg> to test with a still image instead.
 """
 import asyncio
 import json
 import logging
 import os
+import subprocess
+import tempfile
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import cv2
+import Quartz
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -25,12 +31,16 @@ from server.trace import KEYS, Trace
 ROOT = Path(__file__).resolve().parent.parent
 SETTLE_SECONDS = 0.6  # the display finishes changing after a tap
 STILL = os.environ.get("CLEANROOM_FRAME")
+SOURCE = os.environ.get("CLEANROOM_SOURCE", "camera")
+if SOURCE not in ("camera", "screen"):
+    raise SystemExit(f"CLEANROOM_SOURCE must be camera or screen, not {SOURCE!r}")
+MIRROR_APP = "iPhone Mirroring"
 log = logging.getLogger("cleanroom")
 
 
 @asynccontextmanager
 async def lifespan(app):
-    if not STILL:
+    if SOURCE == "camera" and not STILL:
         index = int(os.environ.get("CLEANROOM_CAMERA", "1"))
         try:
             camera.open(index)
@@ -49,16 +59,42 @@ subscribers = set()
 
 def new_trace():
     session = time.strftime("%Y%m%d-%H%M%S")
-    state["trace"] = Trace(ROOT / "traces" / f"{session}.jsonl", source="camera")
+    state["trace"] = Trace(ROOT / "traces" / f"{session}.jsonl", source=SOURCE)
     return state["trace"]
 
 
 new_trace()
 
 
+def mirror_window_id():
+    """CGWindowID of the iPhone Mirroring window, or None if it isn't on screen."""
+    windows = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, Quartz.kCGNullWindowID)
+    for w in windows:
+        if w.get("kCGWindowOwnerName") == MIRROR_APP and w.get("kCGWindowLayer") == 0:
+            return int(w["kCGWindowNumber"])
+    return None
+
+
+def grab_screen():
+    """Screenshot the mirroring window (no shadow, no sound). Whole screen as a fallback."""
+    window = mirror_window_id()
+    if window is None:
+        log.warning("%s window not found; capturing the whole screen", MIRROR_APP)
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "frame.png")
+        args = ["/usr/sbin/screencapture", "-x", "-o"] + ([f"-l{window}"] if window else []) + [path]
+        result = subprocess.run(args, capture_output=True, text=True, timeout=5)
+        if result.returncode or not os.path.exists(path):
+            log.error("screencapture failed: %s", result.stderr.strip())
+            return None
+        return cv2.imread(path)
+
+
 def grab_frame():
     if STILL:
         return cv2.imread(STILL)
+    if SOURCE == "screen":
+        return grab_screen()
     try:
         return camera.latest()
     except camera.CameraError as e:
@@ -84,7 +120,7 @@ async def capture(apply_reading):
     set_busy(True)
     try:
         await asyncio.sleep(SETTLE_SECONDS)
-        frame = grab_frame()
+        frame = await asyncio.to_thread(grab_frame)
         reading, model = await asyncio.to_thread(reader.read, frame)
         line = apply_reading(reading)
         emit("capture", {"thumb": reader.thumb(frame), "reading": reading, "model": model, "line": line})
@@ -156,17 +192,18 @@ async def events():
 @app.get("/preview.mjpg")
 async def preview():
     media_type = "multipart/x-mixed-replace; boundary=frame"
-    if not STILL:
+    if SOURCE == "camera" and not STILL:
         return StreamingResponse(camera.mjpeg_frames(), media_type=media_type)
+    pause = 0.5 if SOURCE == "screen" else 0.1  # a screenshot costs ~0.2 s, so go slower
 
     async def stream():
         while True:
-            frame = grab_frame()
+            frame = await asyncio.to_thread(grab_frame)
             if frame is not None:
                 ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 if ok:
                     yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + buf.tobytes() + b"\r\n"
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(pause)
 
     return StreamingResponse(stream(), media_type=media_type)
 
