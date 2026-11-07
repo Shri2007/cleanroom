@@ -53,11 +53,26 @@ def plan_tests(lines):
     return planned
 
 
+def check_line(line, where):
+    """Raise ValueError, naming `where`, unless `line` has a known key and four text-or-null readings."""
+    if not isinstance(line, dict):
+        raise ValueError(f"{where}: a trace line must be a JSON object")
+    if line.get("key") not in KEYS:
+        raise ValueError(f"{where}: unknown key {line.get('key')!r}")
+    missing = [f for f in READING_FIELDS if f not in line]
+    if missing:
+        raise ValueError(f"{where}: missing reading field(s): {', '.join(missing)}")
+    for field in READING_FIELDS:
+        if line[field] is not None and not isinstance(line[field], str):
+            raise ValueError(f"{where}: {field} must be text or null, not {type(line[field]).__name__}")
+
+
 def load(path):
     """Read a saved v2 trace. Returns its lines in file order.
 
     Raises FileNotFoundError for a missing file (a mistyped path must not look like an empty
-    trace) and ValueError, naming the line, for bad JSON, an unknown key, or a missing reading.
+    trace) and ValueError, naming the line, for bad JSON, an unknown key, or a missing or
+    non-text reading.
     """
     path = Path(path)
     lines = []
@@ -68,13 +83,7 @@ def load(path):
             line = json.loads(raw)
         except json.JSONDecodeError as error:
             raise ValueError(f"{path}:{number}: not valid JSON ({error.msg})") from None
-        if not isinstance(line, dict):
-            raise ValueError(f"{path}:{number}: a trace line must be a JSON object")
-        if line.get("key") not in KEYS:
-            raise ValueError(f"{path}:{number}: unknown key {line.get('key')!r}")
-        missing = [f for f in READING_FIELDS if f not in line]
-        if missing:
-            raise ValueError(f"{path}:{number}: missing reading field(s): {', '.join(missing)}")
+        check_line(line, f"{path}:{number}")
         lines.append(line)
     return lines
 
@@ -100,18 +109,24 @@ def replay(saved, out_path):
     renumbered from 1 without gaps (see `plan_tests`). That is what makes a replayed trace score
     exactly what the original scores, because the checker runs each test on a fresh calculator.
     Every kept line has suspect false and deleted false. Returns the new Trace. Refuses to touch an
-    existing file (a Trace would append to it) or the file it is replaying.
+    existing file (a Trace would append to it) or the file it is replaying, and raises ValueError
+    for a line `check_line` rejects or when no line survives (nothing would be written).
     """
     out_path = Path(out_path)
     if not isinstance(saved, list):
         if out_path.resolve() == Path(saved).resolve():
             raise ValueError("--out must not be the trace being replayed")
         saved = load(saved)
+    else:
+        for number, line in enumerate(saved, start=1):
+            check_line(line, f"line {number}")
     if out_path.exists():
         raise FileExistsError(f"{out_path} already exists; a replay never appends to or overwrites a trace")
     kept = usable(saved)
+    if not kept:
+        raise ValueError("nothing to replay: every line is deleted or suspect")
     trace = _ReplayTrace(out_path, source=SOURCE)
-    for line, test in zip(kept, plan_tests(kept)):
+    for line, test in zip(kept, plan_tests(kept), strict=True):
         trace.planned_test = test
         trace.append(line["key"], {field: line[field] for field in READING_FIELDS})
     return trace
@@ -140,9 +155,11 @@ def main(argv=None):
         print(f"replay: {error}", file=sys.stderr)
         return 2
     keep = usable(saved)
-    tests = len({line["test"] for line in keep})
-    print(f"{args.trace}: {len(saved)} lines, {len(keep)} replayed, {tests} test(s); "
+    print(f"{args.trace}: {len(saved)} lines, {len(keep)} replayed, {max(plan_tests(keep), default=0)} test(s); "
           "no camera, reader or vision model is used")
+    if not keep:
+        print("replay: nothing to replay: every line is deleted or suspect", file=sys.stderr)
+        return 2
     if args.out:
         try:
             trace = replay(saved, args.out)

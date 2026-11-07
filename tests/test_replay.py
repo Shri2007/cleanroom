@@ -61,6 +61,12 @@ class LoadTest(unittest.TestCase):
                 with self.subTest(label), self.assertRaisesRegex(ValueError, rf"{label}\.jsonl:2: .*{re.escape(fragment)}"):
                     replay.load(path)
 
+    def test_readings_must_be_text_or_null(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = write(Path(d) / "num.jsonl", [dict(SAVED[0], display=0)])
+            with self.assertRaisesRegex(ValueError, r"num\.jsonl:1: display must be text or null"):
+                replay.load(path)
+
     def test_blank_lines_are_ignored(self):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "t.jsonl"
@@ -74,7 +80,7 @@ class ReplayTest(unittest.TestCase):
             trace = replay.replay(SAMPLE, Path(d) / "again.jsonl")
             again = replay.load(Path(d) / "again.jsonl")
         self.assertEqual(again, trace.lines)
-        for new, old in zip(again, SAVED):
+        for new, old in zip(again, SAVED, strict=True):
             self.assertEqual((new["seq"], new["test"], new["key"]), (old["seq"], old["test"], old["key"]))
             self.assertEqual({f: new[f] for f in READING_FIELDS}, {f: old[f] for f in READING_FIELDS})
             self.assertEqual(new["source"], "replay")
@@ -157,6 +163,24 @@ class ReplayTest(unittest.TestCase):
         kept = [r for r in rows if not r["deleted"] and not r["suspect"]]
         self.assertEqual([(l["key"], {f: l[f] for f in READING_FIELDS}) for l in trace.lines],
                          [(r["key"], {f: r[f] for f in READING_FIELDS}) for r in kept])
+
+    def test_lines_passed_as_a_list_are_validated_like_a_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            for label, row, fragment in [
+                ("missing reading", {"key": "2", "test": 1}, "missing reading field"),
+                ("bad key", dict(SAVED[0], key="nope"), "unknown key"),
+                ("non-text reading", dict(SAVED[0], display=5), "display must be text or null"),
+            ]:
+                with self.subTest(label), self.assertRaisesRegex(ValueError, rf"line 2: .*{fragment}"):
+                    replay.replay([SAVED[0], row], Path(d) / f"{label.replace(' ', '_')}.jsonl")
+
+    def test_nothing_to_replay_is_an_error_and_writes_no_file(self):
+        rows = [dict(r, suspect=True) for r in SAVED[:2]] + [dict(r, deleted=True) for r in SAVED[2:]]
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "empty.jsonl"
+            with self.assertRaisesRegex(ValueError, "nothing to replay"):
+                replay.replay(rows, out)
+            self.assertFalse(out.exists())
 
     def test_never_overwrites_or_appends(self):
         with tempfile.TemporaryDirectory() as d:
@@ -317,6 +341,38 @@ class CliTest(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertIn("re-recorded 5 lines", r.stdout)
             self.assertEqual(self.run_cli(SAMPLE, "--out", out).returncode, 2)  # never overwrites
+
+    def cli_on(self, rows, *args):
+        """Run the CLI on a temp trace made from `rows`; the literal argument "OUT" becomes a new temp path."""
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        path = write(Path(d.name) / "in.jsonl", rows)
+        out = Path(d.name) / "out.jsonl"
+        return self.run_cli(path, *[out if a == "OUT" else a for a in args])
+
+    def test_trace_without_test_numbers_works_and_counts_tests_like_replay(self):
+        rows = [{k: v for k, v in r.items() if k != "test"} for r in SAVED + SAVED]
+        r = self.cli_on(rows)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertIn("10 replayed, 2 test(s)", r.stdout)
+
+    def test_test_count_is_the_replays_not_the_saved_ids(self):
+        r = self.cli_on([dict(x, test=1) for x in SAVED + SAVED])  # saved says one test, but there are two ACs
+        self.assertIn("2 test(s)", r.stdout)
+
+    def test_non_text_reading_exits_2_with_a_message_not_a_traceback(self):
+        r = self.cli_on([dict(SAVED[0], display=0)] + SAVED[1:])
+        self.assertEqual(r.returncode, 2)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertIn("display must be text or null", r.stderr)
+
+    def test_nothing_to_replay_exits_2_with_a_clear_message(self):
+        r = self.cli_on([dict(x, suspect=True) for x in SAVED], "--out", "OUT", "--copy", FIX / "calc_good.js")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("nothing to replay", r.stderr)
+        self.assertNotIn("ENOENT", r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
 
     def test_missing_trace_exits_2(self):
         r = self.run_cli(ROOT / "traces" / "nope.jsonl")
