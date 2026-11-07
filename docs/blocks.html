@@ -147,6 +147,15 @@ function canMove() {
   return tray.some(p => !p.used && [...Array(64).keys()].some(i => fits(cellsFor(p, Math.floor(i / 8), i % 8))));
 }
 start();
+// blocks.html#demo plays a fixed opening on the AI's copy (for screenshots): fills row 7, then clears it
+if (location.hash === '#demo') {
+  for (const cs of [[[7,0],[7,1],[7,2]], [[7,3],[7,4],[6,3],[6,4]], [[7,5],[7,6],[7,7],[6,7],[5,7]], [[4,0],[5,0],[5,1]]]) {
+    const r = globalThis.Blocks.step(board.slice(), cs);
+    cs.forEach(([a, b]) => colors[a * 8 + b] = COLORS[(a + b) % COLORS.length]);
+    board = r.board; score += r.points;
+  }
+  $('score').textContent = score; draw();
+}
 </script>
 </body>
 </html>

@@ -77,7 +77,34 @@ The part companies actually pay for: take code nobody dares touch, rewrite it cl
 | Screen read (Meta, minimal reasoning) | 2.1–2.9 s per read |
 | Copy written (Meta, minimal reasoning) | about 13 s per version (4.5 minutes at default reasoning, which is why we turned it down) |
 | Watch mode, simulated fast typing | 6/6 keys, 0 duplicates |
+| Block Blast (bonus) | rules for clears and per-cell scoring found from 19 watched moves; copy 50% own / 60% unseen |
 | Test suite | 62 passing (`uv run --with pytest python -m pytest -q`), plus 6 agent runtime tests |
+
+---
+
+## Bonus: a game (Block Blast)
+
+Same idea, different program. We pointed it at the Block Blast phone game for about five minutes. It read the 8×8 board from each screenshot (plain pixel sampling, exact on all 64 cells), logged every move, and the brain wrote rules and a copy of the move logic.
+
+<p align="center"><img src="docs/img/blocks-copy.png" alt="The AI's copy of the block game's move logic, after filling and clearing the bottom row" width="300"></p>
+
+What it watched (two board states from the log):
+
+```text
+before  ........ ........ ........ ...##### ...##### .....### .....### ....####
+after   ........ ........ .##..... .##..... ###..... ###..... ###..... ###.....
+```
+
+| Rule it found | Status |
+|---|---|
+| A full row of 8 clears; a full column of 8 clears | seen |
+| Clears happen right after the piece lands; partial lines never clear | seen |
+| 1 point per placed cell when nothing clears (5 → 5, 9 → 9, 4 → 4) | seen |
+| Clearing lines adds a bonus that grows with lines cleared at once | guessed (formula not learned yet) |
+
+Honest numbers: from 19 watched moves, the rules-only copy matches **50%** of its own moves and **60%** of moves it never saw. The first copy reached "100%" by pasting in seven training boards; the held-out score exposed it, and copies that hard-code observed boards are now rejected automatically. Most remaining misses trace back to noisy logging (drag previews), not the rules.
+
+**Play the copy:** [`docs/blocks.html`](docs/blocks.html). The board, line clears and points come from the AI-written `step()`; only the random pieces come from the page. Code: [`server/blocks.py`](server/blocks.py).
 
 ---
 
@@ -275,7 +302,7 @@ traces/    sample.jsonl (session traces stay local)
 
 ## Legal and ethics
 
-Copyright protects code, not behavior. Clean Room never sees the original code; it watches outputs and writes new code, the clean-room method courts have accepted since the BIOS-clone cases. The trace is a record of exactly what it saw, and anything from the model's prior knowledge is tagged *guessed*. The real limits are **patents** (rebuilding a patented method independently is no defense) and **license terms** that forbid reverse engineering, so Clean Room is meant for software you own or are authorized to recover. Copies carry no logos or brand names.
+Copyright protects code, not behavior. Clean Room never sees the original code; it watches outputs and writes new code, the clean-room method courts have accepted since the BIOS-clone cases. The trace is a record of exactly what it saw, and anything from the model's prior knowledge is tagged *guessed*. The real limits are **patents** (rebuilding a patented method independently is no defense) and **license terms** that forbid reverse engineering, so Clean Room is meant for software you own or are authorized to recover. Copies carry no logos or brand names. Block Blast is a commercial game; we only watched our own play through screenshots, kept no game assets, and our copy rebuilds the move rules (game mechanics are not copyrightable), not its art, name or levels. It is a research demo, not a clone for distribution.
 
 ---
 
@@ -287,7 +314,7 @@ Copyright protects code, not behavior. Clean Room never sees the original code; 
 
 | Kind | What |
 |---|---|
-| Apps we watched | The iPhone Calculator app (through iPhone Mirroring), the Unix `cal` program |
+| Apps we watched | The iPhone Calculator app (through iPhone Mirroring), the Unix `cal` program, the Block Blast game (bonus) |
 | Models | Meta `muse-spark-1.3` (eyes and brain), Google Gemini Flash-Lite (fallback) |
 | Libraries | FastAPI, uvicorn, OpenCV, the OpenAI Python SDK (as the API client), python-dotenv, PyObjC (Quartz), Fetch.ai uAgents, Node.js |
 
