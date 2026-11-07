@@ -1,0 +1,5 @@
+{"seq": 1, "test": 1, "t": 0.0, "source": "camera", "key": "AC", "display": "0", "expression": null, "clear_label": "AC", "active_op": null, "suspect": false, "deleted": false}
+{"seq": 2, "test": 1, "t": 2.1, "source": "camera", "key": "2", "display": "2", "expression": null, "clear_label": "C", "active_op": null, "suspect": false, "deleted": false}
+{"seq": 3, "test": 1, "t": 4.3, "source": "camera", "key": "+", "display": "2", "expression": null, "clear_label": "C", "active_op": "+", "suspect": false, "deleted": false}
+{"seq": 4, "test": 1, "t": 6.0, "source": "camera", "key": "3", "display": "3", "expression": null, "clear_label": "C", "active_op": null, "suspect": false, "deleted": false}
+{"seq": 5, "test": 1, "t": 8.2, "source": "camera", "key": "=", "display": "5", "expression": null, "clear_label": "C", "active_op": null, "suspect": false, "deleted": false}
