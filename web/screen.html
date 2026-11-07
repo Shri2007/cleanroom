@@ -105,6 +105,7 @@
     <div class="brand">Clean Room</div>
     <div class="tag">rebuilding software by watching it</div>
     <div class="spacer"></div>
+    <div class="pill thinking" id="watchPill" hidden><span class="dot"></span><span>watching the phone</span></div>
     <div class="pill" id="brainPill" hidden><span class="dot"></span><span id="brainText">brain</span></div>
     <div class="pill ready" id="statePill"><span class="dot"></span><span id="stateText">ready</span></div>
   </div>
@@ -136,7 +137,7 @@
       <div class="bars" id="bars"></div>
     </div>
   </section>
-  <div class="keys">click once for sound · R run brain · T ask for a test · N new session</div>
+  <div class="keys">click once for sound · W watch the phone · R run brain · T ask for a test · N new session</div>
 </div>
 
 <div class="flash" id="flash"></div>
@@ -145,7 +146,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const MAX_ROWS = 11, MAX_RULES = 9;
-let lines = [], rules = [], versions = [], soundOn = false, shownPct = 0;
+let lines = [], rules = [], versions = [], soundOn = false, shownPct = 0, watching = false;
 
 // ---------- small helpers (textContent only: rule text comes from a model) ----------
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
@@ -273,6 +274,10 @@ function connect() {
     if (i >= 0) lines[i] = l; renderRows();
   });
   es.addEventListener('session', clearAll);
+  es.addEventListener('watch', e => {
+    const d = JSON.parse(e.data); watching = d.on; $('watchPill').hidden = !d.on;
+    if (d.error) setBrain(d.error, false);
+  });
   es.addEventListener('pick_test', e => {
     const d = JSON.parse(e.data);
     $('askText').textContent = d.instruction; $('ask').classList.add('on');
@@ -302,6 +307,7 @@ document.addEventListener('keydown', e => {
   if (k === 'r') post('/brain/run');
   else if (k === 't') { $('askText').textContent = 'thinking…'; $('ask').classList.add('on'); post('/brain/pick_test'); }
   else if (k === 'n') post('/session/new');
+  else if (k === 'w') post(watching ? '/watch/stop' : '/watch/start');
   else if (k === 'escape') $('ask').classList.remove('on');
 });
 

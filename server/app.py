@@ -26,7 +26,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from server import brain, camera, reader
+from server import brain, camera, reader, watch
 from server.trace import KEYS, Trace
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -65,7 +65,7 @@ async def lifespan(app):
 app = FastAPI(title="Clean Room", lifespan=lifespan)
 app.mount("/web", StaticFiles(directory=ROOT / "web"), name="web")
 
-state = {"busy": False, "trace": None, "brain_running": False, "loop": None}
+state = {"busy": False, "trace": None, "brain_running": False, "loop": None, "watching": False}
 subscribers = set()
 
 
@@ -183,6 +183,69 @@ async def session_new():
     trace = new_trace()
     emit("session", {"path": trace.path.name})
     return {"path": trace.path.name}
+
+
+WATCH_PERIOD = 0.3  # seconds between screenshots while watching
+
+
+async def watch_loop():
+    """Screenshot often; when the display changes and settles, read it and infer the key."""
+    frame = await asyncio.to_thread(grab_frame)
+    if frame is None:
+        emit("watch", {"on": False, "error": "no frame to watch"})
+        state["watching"] = False
+        return
+    prev, _ = await asyncio.to_thread(reader.read, frame)
+    seen, pending = watch.signature(frame), None
+    emit("watch", {"on": True, "display": prev.get("display")})
+    while state["watching"]:
+        await asyncio.sleep(WATCH_PERIOD)
+        if state["busy"]:
+            continue
+        frame = await asyncio.to_thread(grab_frame)
+        if frame is None:
+            continue
+        sig = watch.signature(frame)
+        if not watch.changed(sig, seen):
+            pending = None
+            continue
+        if pending is None or watch.changed(sig, pending):
+            pending = sig  # still changing: wait until two screenshots in a row agree
+            continue
+        set_busy(True)
+        try:
+            reading, model = await asyncio.to_thread(reader.read, frame)
+            key = watch.infer_key(prev, reading) or await asyncio.to_thread(watch.ask_key, prev, reading)
+            seen, pending = sig, None
+            if key and reading.get("display") is not None:
+                line = state["trace"].append(key, reading)
+                emit("capture", {"thumb": reader.thumb(frame), "reading": reading, "model": model,
+                                 "line": line, "inferred": True})
+            else:
+                emit("watch", {"on": True, "skipped": reading.get("display")})
+            if reading.get("display") is not None:
+                prev = reading
+        except Exception as e:  # keep watching; show the problem
+            log.exception("watch step failed")
+            emit("watch", {"on": True, "error": f"{type(e).__name__}: {e}"[:200]})
+        finally:
+            set_busy(False)
+    emit("watch", {"on": False})
+
+
+@app.post("/watch/start")
+async def watch_start():
+    if state["watching"]:
+        return {"watching": True}
+    state["watching"] = True
+    asyncio.create_task(watch_loop())
+    return {"watching": True}
+
+
+@app.post("/watch/stop")
+async def watch_stop():
+    state["watching"] = False
+    return {"watching": False}
 
 
 class BrainRun(BaseModel):
