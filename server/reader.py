@@ -81,11 +81,12 @@ def read(frame):
     return dict(EMPTY), "; ".join(errors) or "no API keys set"
 
 
-def thumb(frame, width=320):
-    """Small JPEG (base64) for the flash + thumbnail on screen."""
+def thumb(frame, size=320):
+    """Small JPEG (base64), longest side ≤ size, for the flash + thumbnail on screen."""
     if frame is None:
         return None
     h, w = frame.shape[:2]
-    if w > width:
-        frame = cv2.resize(frame, (width, int(h * width / w)))
+    scale = size / max(h, w)
+    if scale < 1:
+        frame = cv2.resize(frame, (int(w * scale), int(h * scale)))
     return _jpeg_b64(frame, quality=70)
