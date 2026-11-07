@@ -15,7 +15,9 @@
   [hidden] { display: none !important; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
     font: 20px/1.35 system-ui, -apple-system, sans-serif; overflow: hidden; }
-  .app { display: grid; height: 100vh; padding: 20px; gap: 20px;
+  /* Designed at 1920x1080 and scaled to fit any window, so it looks the same on a laptop or projector. */
+  .app { display: grid; width: 1920px; height: 1080px; padding: 20px; gap: 20px;
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(var(--fit, 1));
     grid-template-columns: 420px 1fr 1fr; grid-template-rows: auto 1fr 300px;
     grid-template-areas: "top top top" "eye trace rules" "eye score score"; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px;
@@ -89,11 +91,11 @@
   .flash.on { opacity: .85; transition: none; }
   .thumb { position: fixed; right: 28px; bottom: 28px; background: var(--card); border: 1px solid var(--line);
     border-radius: 14px; padding: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.5); transform: translateY(140%);
-    transition: transform .35s ease-out; text-align: center; }
-  .thumb.on { transform: none; }
+    opacity: 0; transition: transform .35s ease-out, opacity .35s; text-align: center; }
+  .thumb.on { transform: none; opacity: 1; }
   .thumb img { max-height: 220px; border-radius: 8px; display: block; }
   .thumb div { font-family: var(--mono); font-size: 22px; margin-top: 8px; }
-  .keys { position: fixed; left: 24px; bottom: 10px; font-size: 13px; color: #4b5266; }
+  .keys { position: absolute; left: 24px; bottom: 2px; font-size: 13px; color: #4b5266; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -134,11 +136,11 @@
       <div class="bars" id="bars"></div>
     </div>
   </section>
+  <div class="keys">click once for sound · R run brain · T ask for a test · N new session</div>
 </div>
 
 <div class="flash" id="flash"></div>
 <div class="thumb" id="thumb"><img id="thumbImg" alt=""><div id="thumbText"></div></div>
-<div class="keys">click once for sound · R run brain · T ask for a test · N new session</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -244,6 +246,18 @@ function setBrain(text, on) {
   $('brainText').textContent = text;
 }
 
+function clearAll() {
+  lines = []; rules = []; versions = []; shownPct = 0;
+  renderRows(); renderRules(); renderBars();
+  $('pct').textContent = '–'; $('held').textContent = '–'; $('delta').textContent = '';
+  $('ask').classList.remove('on'); setBrain('', false);
+}
+
+function fit() {
+  document.documentElement.style.setProperty('--fit', Math.min(innerWidth / 1920, innerHeight / 1080));
+}
+addEventListener('resize', fit); fit();
+
 // ---------- server events ----------
 function connect() {
   const es = new EventSource('/events');
@@ -258,7 +272,7 @@ function connect() {
     const l = JSON.parse(e.data).line; const i = lines.findIndex(x => x.seq === l.seq);
     if (i >= 0) lines[i] = l; renderRows();
   });
-  es.addEventListener('session', () => { lines = []; renderRows(); });
+  es.addEventListener('session', clearAll);
   es.addEventListener('pick_test', e => {
     const d = JSON.parse(e.data);
     $('askText').textContent = d.instruction; $('ask').classList.add('on');
@@ -297,7 +311,7 @@ async function load() {
   img.onload = () => { $('previewHint').hidden = true; };
   img.src = '/preview.mjpg';
   try { const t = await (await fetch('/trace')).json(); lines = t.lines; setBusy(t.busy); renderRows(); } catch {}
-  try {
+  if (lines.length) try {  // an empty session starts with a clean screen, not the last run's scores
     const calc = (await (await fetch('/scores')).json()).calc || [];
     const lastRunStart = calc.map(v => v.round).lastIndexOf(0);
     if (lastRunStart >= 0) {
