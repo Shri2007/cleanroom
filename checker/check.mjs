@@ -1,6 +1,7 @@
 // Node sandbox: load a copy, run trace lines, report match % (Ali).
 //
 // Usage: node checker/check.mjs <copy.js> <trace.jsonl> [--tests 1,2,3] [--mode calc|cal]
+//        node checker/check.mjs --job   (JSON {target, code, lines, tests} on stdin; see runJob)
 // Prints one JSON report on stdout. Exit code 0 = ran (even at 0%), 2 = could not run.
 //
 // Copy contract (what Shri's builder must emit): a plain JS file that defines either
@@ -158,12 +159,105 @@ export function check(source, lines, onlyTests = null, mode = null) {
   };
 }
 
+// ---- Job mode: `node check.mjs --job`, JSON on stdin (used by server.checker.run) ----
+// The copy arrives as a string, not a file, and is a browser-style global:
+//   calc: globalThis.Calc = { reset(), press(key), render() -> {display, expression, clear_label, active_op} }
+//   cal:  globalThis.Cal  = { run(month, year) -> "<exact text>" }
+// Same sandbox rules as above. Comparison is EXACT (no trimming): the copy must reproduce what
+// the real program printed. Fields the trace left null are not compared (calc only).
+const JOB_CALL_MS = 500, JOB_LOAD_MS = 1000, JOB_DEADLINE_MS = 8000;
+const CALC_FIELDS = ["display", "expression", "clear_label", "active_op"];
+
+function jobContext(code) {
+  const ctx = vm.createContext(Object.create(null), { codeGeneration: { strings: false, wasm: false } });
+  vm.runInContext(code, ctx, { timeout: JOB_LOAD_MS, filename: "copy.js" });
+  return ctx;
+}
+
+const asInt = (v, lo, hi) => (Number.isInteger(v) && v >= lo && v <= hi ? v : null);
+
+export function runJob({ target, code, lines, tests = null }) {
+  if (target !== "calc" && target !== "cal") throw new Error(`unknown target ${JSON.stringify(target)}`);
+  const only = tests == null ? null : new Set(tests);
+  const usable = lines.filter((l) => !l.deleted && !l.suspect && (!only || only.has(l.test)));
+  const started = Date.now();
+  const late = () => Date.now() - started > JOB_DEADLINE_MS;
+  const results = new Map(); // test -> pass
+  const mismatches = [];
+  let matched = 0;
+  const record = (test, ok) => results.set(test, (results.get(test) ?? true) && ok);
+
+  if (target === "cal") {
+    for (const l of usable) {
+      let got = null, error = null;
+      const m = asInt(l.args?.[0], 1, 12), y = asInt(l.args?.[1], 1, 9999);
+      try {
+        if (m === null || y === null || l.args.length !== 2) throw new Error("bad args");
+        if (late()) throw new Error("checker deadline exceeded");
+        const r = vm.runInContext(`JSON.stringify(Cal.run(${m}, ${y}))`, jobContext(code), { timeout: JOB_CALL_MS });
+        got = JSON.parse(r ?? "null");
+      } catch (e) { error = String(e.message ?? e); }
+      const pass = !error && typeof got === "string" && got === l.output;
+      record(l.test, pass);
+      if (pass) matched++;
+      else mismatches.push({ test: l.test, seq: l.seq, args: l.args, expected: l.output, got: typeof got === "string" ? got : null, ...(error ? { error } : {}) });
+    }
+  } else {
+    const byTest = new Map();
+    for (const l of usable) byTest.set(l.test, [...(byTest.get(l.test) ?? []), l]);
+    for (const [test, rows] of byTest) {
+      let ctx = null, broken = null;
+      try { ctx = jobContext(code); vm.runInContext("Calc.reset()", ctx, { timeout: JOB_CALL_MS }); }
+      catch (e) { broken = String(e.message ?? e); }
+      for (const l of rows) {
+        let got = null, error = broken;
+        if (!error) {
+          try {
+            if (late()) throw new Error("checker deadline exceeded");
+            const r = vm.runInContext(
+              `JSON.stringify((function (k) { if (k !== "none") Calc.press(k); return Calc.render(); })(${JSON.stringify(String(l.key))}))`,
+              ctx, { timeout: JOB_CALL_MS });
+            got = JSON.parse(r ?? "null") ?? {};
+          } catch (e) { error = String(e.message ?? e); broken = error; } // state is untrustworthy after a crash
+        }
+        const bad = error ? CALC_FIELDS.filter((f) => l[f] != null) : CALC_FIELDS.filter((f) => l[f] != null && String(got[f]) !== String(l[f]));
+        const pass = !error && bad.length === 0;
+        record(test, pass);
+        if (pass) matched++;
+        else mismatches.push({
+          test, seq: l.seq, key: l.key,
+          expected: Object.fromEntries(bad.map((f) => [f, l[f]])),
+          got: error ? { error } : Object.fromEntries(bad.map((f) => [f, got[f] ?? null])),
+        });
+      }
+    }
+  }
+  const total = usable.length;
+  return {
+    mode: target,
+    match_pct: total ? Math.round((matched / total) * 10000) / 100 : 0,
+    matched, total, skipped: lines.length - total,
+    tests: [...results].map(([test, pass]) => ({ test, pass })),
+    mismatches,
+  };
+}
+
 // Defence in depth: even if a copy escaped the sandbox it would find no keys here.
 function scrubEnv() {
   for (const k of Object.keys(process.env)) delete process.env[k];
 }
 
 function main(argv) {
+  if (argv[0] === "--job") {
+    scrubEnv();
+    try {
+      console.log(JSON.stringify(runJob(JSON.parse(fs.readFileSync(0, "utf8")))));
+      return 0;
+    } catch (e) {
+      console.log(JSON.stringify({ match_pct: 0, error: String(e.message ?? e), mismatches: [] }));
+      return 2;
+    }
+  }
   scrubEnv();
   const [copyPath, tracePath, ...rest] = argv;
   if (!copyPath || !tracePath) {
