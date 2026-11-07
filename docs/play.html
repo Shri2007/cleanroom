@@ -163,6 +163,9 @@ async function load() {
   if (!globalThis.Calc) throw new Error('the copy did not define Calc');
   globalThis.Calc.reset();
   ready = true; $('badge').textContent = label; render();
+  // play.html#keys=5,0,+,1,0,%,= presses keys on load (for screenshots and videos)
+  const keys = new URLSearchParams(location.hash.slice(1)).get('keys');
+  if (keys) for (const k of keys.split(',')) press(k);
 }
 load().catch(e => { $('note').hidden = false; $('note').textContent = 'No copy loaded yet: ' + e.message; });
 </script>
