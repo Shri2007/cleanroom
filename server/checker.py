@@ -67,6 +67,48 @@ def check(copy_path, trace_path=DEFAULT_TRACE, tests=None, mode=None):
     return report
 
 
+MAX_CODE_CHARS = 200_000
+MAX_LINES = 5_000
+JOB_TIMEOUT_SECONDS = 12  # JS stops scoring after 8 s, so this only catches a stuck node
+
+
+def run(target, code, lines, tests=None):
+    """Score a copy given as source text. This is what server/brain.py and agent/ call.
+
+    target "calc": `code` defines globalThis.Calc = {reset(), press(key), render()}; `lines` are
+                   calculator trace lines (key, display, ...). Null fields are not compared.
+    target "cal":  `code` defines globalThis.Cal = {run(month, year)}; `lines` are
+                   {seq, test, args: [month, year], output, deleted}. Output must match exactly.
+    `tests` limits scoring to those test numbers (None = all). Deleted and suspect lines are skipped.
+
+    Returns {match_pct, matched, total, skipped, tests: [{test, pass}], mismatches}. A copy that
+    fails to load or crashes is scored 0 on the lines it breaks, not raised. If the checker itself
+    cannot run, the result is {error, match_pct: 0, mismatches: []} so callers never crash on it.
+    Raises ValueError only for a call that can never work (unknown target, oversized input).
+    """
+    if target not in ("calc", "cal"):
+        raise ValueError(f"unknown target {target!r}")
+    if not isinstance(code, str) or len(code) > MAX_CODE_CHARS:
+        raise ValueError(f"code must be a string of at most {MAX_CODE_CHARS} characters")
+    if len(lines) > MAX_LINES:
+        raise ValueError(f"at most {MAX_LINES} lines per run")
+    job = json.dumps({"target": target, "code": code, "lines": lines,
+                      "tests": None if tests is None else list(tests)}, ensure_ascii=False)
+    # Same lockdown as check(): read-only access to the checker itself, PATH-only environment.
+    cmd = ["node", "--permission", f"--allow-fs-read={CHECK_MJS.parent}", str(CHECK_MJS), "--job"]
+    try:
+        proc = subprocess.run(cmd, input=job, capture_output=True, text=True,
+                              timeout=JOB_TIMEOUT_SECONDS, env={"PATH": os.environ.get("PATH", "")})
+    except subprocess.TimeoutExpired:
+        return {"error": "checker timed out", "match_pct": 0, "mismatches": []}
+    except FileNotFoundError:
+        return {"error": "node is not installed or not on PATH", "match_pct": 0, "mismatches": []}
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return {"error": (proc.stderr.strip() or "checker gave no report")[:500], "match_pct": 0, "mismatches": []}
+
+
 def split_tests(ids, held_out=None):
     """(train, held_out). Default: every third test is held out, once there are 2+."""
     if held_out is None:
