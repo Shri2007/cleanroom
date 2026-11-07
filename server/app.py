@@ -116,7 +116,10 @@ def grab_frame():
 
 def _fan_out(message):
     for queue in list(subscribers):
-        queue.put_nowait(message)
+        try:
+            queue.put_nowait(message)
+        except asyncio.QueueFull:
+            subscribers.discard(queue)
 
 
 def emit(event, data):

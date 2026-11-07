@@ -1,4 +1,10 @@
-"""Append/read contract v2 trace lines (Shri)."""
+"""Append/read contract v2 trace lines (Shri).
+
+Each non-blank line is one JSON object with the exact field order used by
+``traces/sample.jsonl``.  A trace is append-only at the logical level:
+corrections update a reading in place and undo marks a line as deleted so
+downstream consumers can retain its sequence number.
+"""
 import json
 import time
 from pathlib import Path
@@ -7,6 +13,10 @@ DIGITS = set("0123456789")
 KEYS = DIGITS | {".", "+", "-", "×", "÷", "=", "%", "+/-", "AC", "C", "⌫", "none"}
 MAX_DIGITS = 9  # the phone display stops accepting digits here
 READING_FIELDS = ("display", "expression", "clear_label", "active_op")
+LINE_FIELDS = (
+    "seq", "test", "t", "source", "key", "display", "expression",
+    "clear_label", "active_op", "suspect", "deleted",
+)
 
 
 def is_suspect(key, display):
@@ -31,7 +41,25 @@ class Trace:
         self.lines = []
         self.started = time.monotonic()
         if self.path.exists():
-            self.lines = [json.loads(l) for l in self.path.read_text().splitlines() if l.strip()]
+            self.lines = self.read(self.path)
+
+    @staticmethod
+    def read(path):
+        """Read JSONL records without changing their order or values."""
+        path = Path(path)
+        lines = []
+        for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            if not raw.strip():
+                continue
+            try:
+                line = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"invalid trace JSON on line {number}") from exc
+            missing = [field for field in LINE_FIELDS if field not in line]
+            if missing:
+                raise ValueError(f"trace line {number} is missing: {', '.join(missing)}")
+            lines.append({field: line[field] for field in LINE_FIELDS})
+        return lines
 
     def _next_test(self, key):
         if not self.lines:
@@ -58,6 +86,8 @@ class Trace:
 
     def reread_last(self, reading):
         """Replace the last line's reading (fixes a misread). Keeps seq/test/key."""
+        if not self.lines:
+            raise ValueError("nothing to reread")
         line = self.lines[-1]
         line.update({f: reading.get(f) for f in READING_FIELDS})
         line["suspect"] = is_suspect(line["key"], line["display"])
@@ -75,4 +105,7 @@ class Trace:
 
     def _save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text("".join(json.dumps(l, ensure_ascii=False) + "\n" for l in self.lines))
+        self.path.write_text(
+            "".join(json.dumps(line, ensure_ascii=False) + "\n" for line in self.lines),
+            encoding="utf-8",
+        )

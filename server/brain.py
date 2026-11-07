@@ -69,6 +69,80 @@ def strip_fences(text):
     return (match.group(1) if match else text).strip()
 
 
+# ---------- standalone prompt helpers ----------
+
+PROMPT_SYSTEM = """You are rebuilding a calculator from observed behavior, not from its
+source. Treat trace records as the only authority. Preserve observed behavior,
+call out uncertainty, and never claim an unobserved behavior is certain."""
+
+
+def _prompt_json(value):
+    """Render prompt input consistently, including a list of trace records."""
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False, indent=2)
+
+
+def spec_prompt(trace):
+    """Return a prompt for an implementable behavioral specification."""
+    return f"""{PROMPT_SYSTEM}
+
+Write a concise, implementable calculator specification from this JSONL trace.
+Cover state, key behavior, display and expression rendering, precedence,
+repeated equals, clear/delete behavior, errors, and edge cases. Separate facts
+observed in the trace from hypotheses that need another test.
+
+TRACE:
+{_prompt_json(trace)}"""
+
+
+def copy_prompt(spec):
+    """Return a prompt for a small, deterministic implementation of a spec."""
+    return f"""{PROMPT_SYSTEM}
+
+Implement the following observed specification as a small, deterministic
+calculator program. Do not add product features that the specification does
+not support. Keep state transitions explicit and return the complete source
+for the requested implementation surface.
+
+SPECIFICATION:
+{_prompt_json(spec)}"""
+
+
+def fix_prompt(spec, implementation, failure):
+    """Return a prompt for a minimal repair after an observed mismatch."""
+    return f"""{PROMPT_SYSTEM}
+
+The candidate implementation disagrees with an observed result. Diagnose the
+smallest state or rendering defect that explains the failure, then return a
+minimal patch. Do not rewrite unrelated behavior and do not weaken the test.
+
+SPECIFICATION:
+{_prompt_json(spec)}
+
+IMPLEMENTATION:
+{_prompt_json(implementation)}
+
+FAILURE:
+{_prompt_json(failure)}"""
+
+
+def pick_test_prompt(trace, spec):
+    """Return a prompt for the next highest-information keypad experiment."""
+    return f"""{PROMPT_SYSTEM}
+
+Choose one short next keypad test that most reduces uncertainty in this
+calculator specification. Prefer a test that distinguishes plausible state
+machines, avoid repeating observed behavior, and provide the key sequence plus
+the expected observations that would support each outcome.
+
+TRACE:
+{_prompt_json(trace)}
+
+CURRENT SPECIFICATION:
+{_prompt_json(spec)}"""
+
+
 # ---------- evidence ----------
 
 def load(path):
