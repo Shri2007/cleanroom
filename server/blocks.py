@@ -3,6 +3,8 @@
 Plain pixel sampling, no AI: the grid sits at a fixed place in the window, empty cells are dark
 navy, filled cells are bright colored blocks. The score is read by the Meta reader separately.
 """
+import re
+
 import cv2
 import numpy as np
 
@@ -131,8 +133,16 @@ COPY = (
     "globalThis.Blocks = { step(board, placed) { return {board: [...8 strings], points: <int>}; } };\n"
     "board is 8 strings of 8 chars, '#' filled and '.' empty, top row first. placed is a list of [row, col] "
     "cells where the player just put a piece. Return the board after the move (including any clears) and "
-    "the points scored by this move. No import, require, process, fetch, timers, eval or Function. "
+    "the points scored by this move. It must work for boards it has never seen: general rules only, NO lookup "
+    "tables or special cases for the example boards. No import, require, process, fetch, timers, eval or Function. "
     "Return only the code.")
+
+BOARD_LITERAL = re.compile(r"""["'][#.]{8}["']""")  # an 8-cell row pasted into the code
+
+
+def memorizes(code):
+    """A copy that pastes in observed board rows is memorizing examples, not following rules."""
+    return len(BOARD_LITERAL.findall(code)) >= 3
 
 
 def learn(path, on_event=print):
@@ -161,8 +171,12 @@ def learn(path, on_event=print):
                                         f"RULES:\n{json.dumps(rules)}\n\nMOVES:\n{evidence}"))
     best = None
     for version in range(1, 4):
-        tr, he = score(code, train), score(code, test)
-        on_event({"step": "score", "version": version, "train_pct": tr["match_pct"], "held_pct": he["match_pct"]})
+        if memorizes(code):  # memorized answers score 0: it has to learn the rules
+            tr = he = {"match_pct": 0, "mismatches": [{"error": "copy hard-codes observed boards (memorizing)"}]}
+        else:
+            tr, he = score(code, train), score(code, test)
+        on_event({"step": "score", "version": version, "train_pct": tr["match_pct"], "held_pct": he["match_pct"],
+                  "memorized": memorizes(code)})
         if best is None or tr["match_pct"] > best[1]["match_pct"]:
             best = (code, tr, he)
         if tr["match_pct"] == 100:
