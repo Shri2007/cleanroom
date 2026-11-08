@@ -30,7 +30,7 @@ from server import brain, camera, reader, watch
 from server.trace import KEYS, Trace
 
 ROOT = Path(__file__).resolve().parent.parent
-SETTLE_SECONDS = 0.6  # the display finishes changing after a tap
+SETTLE_SECONDS = 0.6  # camera feeds need time to catch up after a tap
 STILL = os.environ.get("CLEANROOM_FRAME")
 SOURCE = os.environ.get("CLEANROOM_SOURCE", "camera")
 if SOURCE not in ("camera", "screen"):
@@ -90,9 +90,44 @@ def mirror_window_id():
     return None
 
 
+_window = {"id": None, "at": 0.0}
+
+
+def cached_mirror_window():
+    """The mirror window id, looked up at most once a second (listing windows is slow)."""
+    now = time.monotonic()
+    if _window["id"] is None or now - _window["at"] > 1.0:
+        _window["id"], _window["at"] = mirror_window_id(), now
+    return _window["id"]
+
+
+def grab_window_fast(window):
+    """The window's pixels straight from the window server, no subprocess and no temp file: ~15-30 ms
+    instead of ~150 ms for screencapture. Returns a BGR array, or None if the window can't be captured."""
+    import numpy as np
+    image = Quartz.CGWindowListCreateImage(
+        Quartz.CGRectNull, Quartz.kCGWindowListOptionIncludingWindow, window,
+        Quartz.kCGWindowImageBoundsIgnoreFraming)
+    if image is None:
+        return None
+    w, h = Quartz.CGImageGetWidth(image), Quartz.CGImageGetHeight(image)
+    if w < 50 or h < 50:
+        return None
+    row = Quartz.CGImageGetBytesPerRow(image)
+    data = Quartz.CGDataProviderCopyData(Quartz.CGImageGetDataProvider(image))
+    pixels = np.frombuffer(data, dtype=np.uint8).reshape(h, row // 4, 4)[:, :w, :]
+    return np.ascontiguousarray(pixels[:, :, :3])  # BGRA -> BGR
+
+
 def grab_screen():
-    """Screenshot the mirroring window (no shadow, no sound). Whole screen as a fallback."""
-    window = mirror_window_id()
+    """The mirroring window (whole screen if it isn't open). Fast in-process grab first, screencapture
+    as the fallback."""
+    window = cached_mirror_window()
+    if window is not None:
+        frame = grab_window_fast(window)
+        if frame is not None:
+            return frame
+        _window["id"] = None  # window id may be stale; look it up again next time
     if window is None:
         log.warning("%s window not found; capturing the whole screen", MIRROR_APP)
     with tempfile.TemporaryDirectory() as tmp:
@@ -143,11 +178,15 @@ async def capture(apply_reading):
         raise HTTPException(409, "busy: wait for green")
     set_busy(True)
     try:
-        await asyncio.sleep(SETTLE_SECONDS)
+        await asyncio.sleep(0.25 if SOURCE == "screen" else SETTLE_SECONDS)
         frame = await asyncio.to_thread(grab_frame)
+        thumb = reader.thumb(frame)
+        if thumb:
+            emit("snapshot", {"thumb": thumb})
         reading, model = await asyncio.to_thread(reader.read, frame)
         line = apply_reading(reading)
-        emit("capture", {"thumb": reader.thumb(frame), "reading": reading, "model": model, "line": line})
+        emit("capture", {"thumb": thumb, "reading": reading, "model": model, "line": line,
+                         "snapshot_shown": bool(thumb)})
         return {"line": line, "model": model}
     finally:
         set_busy(False)
@@ -188,7 +227,7 @@ async def session_new():
     return {"path": trace.path.name}
 
 
-WATCH_PERIOD = 0.12  # seconds between screenshots while watching (a screenshot itself takes ~0.1 s)
+WATCH_PERIOD = 0.04  # short pause between screenshots; capture itself also takes time
 
 
 async def watch_loop():
@@ -221,6 +260,7 @@ async def watch_loop():
         if still < watch.SETTLE_FRAMES:
             continue
         seen, pending, still = sig, None, 0
+        emit("snapshot", {"thumb": reader.thumb(frame)})
         queue.put_nowait(frame)
     queue.put_nowait(None)
     await reader_task
@@ -253,7 +293,7 @@ async def watch_reader(queue):
                 if key:
                     line = state["trace"].append(key, reading)
                     emit("capture", {"thumb": reader.thumb(frame), "reading": reading, "model": model,
-                                     "line": line, "inferred": True})
+                                     "line": line, "inferred": True, "snapshot_shown": True})
                 else:
                     emit("watch", {"on": True, "skipped": reading.get("display")})
                 prev = reading
@@ -403,7 +443,7 @@ async def preview():
     media_type = "multipart/x-mixed-replace; boundary=frame"
     if SOURCE == "camera" and not STILL:
         return StreamingResponse(camera.mjpeg_frames(), media_type=media_type)
-    pause = 0.5 if SOURCE == "screen" else 0.1  # a screenshot costs ~0.2 s, so go slower
+    pause = 0.1  # the in-process grab costs ~30 ms, so the preview can run at ~10 fps
 
     async def stream():
         while True:
