@@ -151,7 +151,7 @@
       <div class="bars" id="bars"></div>
     </div>
   </section>
-  <div class="keys">click once for sound · W watch the phone · R run brain · T ask for a test · M modernize · N new session</div>
+  <div class="keys">W watch the phone · R run brain · T ask for a test · M modernize · N new session</div>
 </div>
 
 <div class="flash" id="flash"></div>
@@ -160,21 +160,14 @@
 <script>
 const $ = id => document.getElementById(id);
 const MAX_ROWS = 11, MAX_RULES = 9;
-let lines = [], rules = [], versions = [], soundOn = false, shownPct = 0, watching = false;
+let lines = [], rules = [], versions = [], shownPct = 0, watching = false;
 
 // ---------- small helpers (textContent only: rule text comes from a model) ----------
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 function fmtPct(v) { return v == null ? '–' : (Math.round(v * 10) / 10).toString(); }
 
-let audio;
-function click() {
-  if (!soundOn) return;
-  audio = audio || new AudioContext();
-  const len = audio.sampleRate * 0.06, buf = audio.createBuffer(1, len, audio.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
-  const src = audio.createBufferSource(); src.buffer = buf; src.connect(audio.destination); src.start();
-}
-document.addEventListener('click', () => { soundOn = true; });
+// No sound: the page is silent by design.
+function click() {}
 
 // ---------- trace ----------
 function renderRows() {

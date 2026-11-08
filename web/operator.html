@@ -685,7 +685,7 @@
   let ctx = null;
 
   function readMuted() {
-    try { return localStorage.getItem("cleanroom.muted") === "1"; } catch { return false; }
+    try { return localStorage.getItem("cleanroom.muted") !== "0"; } catch { return true; }  // silent unless turned on
   }
 
   function audio() {
