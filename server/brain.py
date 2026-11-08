@@ -330,7 +330,7 @@ def best_calc_version():
     calc = load_history().get("calc", [])
     if not calc:
         raise ValueError("no calculator copies yet: run the brain first")
-    return max(calc, key=lambda v: (v["held_pct"] if v["held_pct"] is not None else -1, v["train_pct"] or 0))
+    return max(calc, key=lambda v: (v["held_pct"] if v["held_pct"] is not None else -1, v["train_pct"] or 0, v["version"]))
 
 
 def modernize(trace_path, on_event=print):

@@ -1,1 +1,5896 @@
-{}
+{
+ "calc": [
+  {
+   "version": 1,
+   "round": 0,
+   "file": "calc_v1.js",
+   "train_pct": 66.67,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, e.g. 5 then 50",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Display shows 0 after AC",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear label is AC when cleared and C after digit entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Pressing C left display at 7 unchanged",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Active operator can show x after = and after x",
+     "status": "seen",
+     "evidence_seq": [
+      5,
+      6
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Expression line stays empty during entry",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      6,
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "After = display shows result and expression shows calculation like 5x9",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Repeated = behavior unknown from lines",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R9",
+     "rule": "% behavior unknown from lines",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R10",
+     "rule": "Error display behavior unknown from lines",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:00:07"
+  },
+  {
+   "version": 2,
+   "round": 1,
+   "file": "calc_v2.js",
+   "train_pct": 73.33,
+   "held_pct": 50,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Typing digits appends to display, multi-digit entry shown as-is e.g. 5 then 0 shows 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "While typing an operation, display shows in-progress expression e.g. 50+1, 50+10, 50+10%",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry and shows full expression only after = e.g. 5x9, 50+10%",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16,
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key labels AC when cleared to 0 and switches to C after digit entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Clear key returns to AC after = is evaluated",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press with single entry leaves display unchanged in this log",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active_op e.g. + or x",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Active operator highlight clears after = completes",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "% in addition is evaluated as percent, e.g. 50+10% = 55",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "No error state is shown in these sequences",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = behavior not shown in these sequences",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:00:33"
+  },
+  {
+   "version": 3,
+   "round": 2,
+   "file": "calc_v3.js",
+   "train_pct": 66.67,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Typing digits appends to display, multi-digit entry shown as-is e.g. 5 then 0 shows 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "While typing an operation, display shows in-progress expression e.g. 50+1, 50+10, 50+10%",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry and shows full expression only after = e.g. 5x9, 50+10%",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16,
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key labels AC when cleared to 0 and switches to C after digit entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Clear key returns to AC after = is evaluated",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press with single entry leaves display unchanged in this log",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active_op e.g. + or x",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Active operator highlight clears after = completes",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "% in addition is evaluated as percent, e.g. 50+10% = 55",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "No error state is shown in these sequences",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = behavior not shown in these sequences",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:00:57"
+  },
+  {
+   "version": 4,
+   "round": 3,
+   "file": "calc_v4.js",
+   "train_pct": 86.67,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Typing digits appends to display, multi-digit entry shown as-is e.g. 5 then 0 shows 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "While typing an operation, display shows in-progress expression e.g. 50+1, 50+10, 50+10%",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry and shows full expression only after = e.g. 5x9, 50+10%",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16,
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key labels AC when cleared to 0 and switches to C after digit entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Clear key returns to AC after = is evaluated",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press with single entry leaves display unchanged in this log",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active_op e.g. + or x",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Active operator highlight clears after = completes",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "% in addition is evaluated as percent, e.g. 50+10% = 55",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "No error state is shown in these sequences",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = behavior not shown in these sequences",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:01:15"
+  },
+  {
+   "version": 5,
+   "round": 4,
+   "file": "calc_v5.js",
+   "train_pct": 86.67,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Typing digits appends to display, multi-digit entry shown as-is e.g. 5 then 0 shows 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "While typing an operation, display shows in-progress expression e.g. 50+1, 50+10, 50+10%",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry and shows full expression only after = e.g. 5x9, 50+10%",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16,
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key labels AC when cleared to 0 and switches to C after digit entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Clear key returns to AC after = is evaluated",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press with single entry leaves display unchanged in this log",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active_op e.g. + or x",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Active operator highlight clears after = completes",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "% in addition is evaluated as percent, e.g. 50+10% = 55",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "No error state is shown in these sequences",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = behavior not shown in these sequences",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:01:23"
+  },
+  {
+   "version": 6,
+   "round": 0,
+   "file": "calc_v6.js",
+   "train_pct": 66.67,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, allows multi-digit append e.g. 5 then 0 gives 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Cleared display shows 0",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry and operator press",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      6,
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "After = expression line shows calculation like 5×9",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Result display shows 45 for shown 5×9 expression",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Clear label is AC when cleared, C after digit entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Clear label becomes AC after completed calculation",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "C press in seq 2 left display at 7 with label still C",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Active operator highlight can become × after = on single entry, and persists on × press",
+     "status": "seen",
+     "evidence_seq": [
+      5,
+      6
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Active operator highlight clears after completed calculation",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = behavior unknown from evidence",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "% behavior unknown from evidence",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R13",
+     "rule": "Error display and handling unknown from evidence",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:10:43"
+  },
+  {
+   "version": 7,
+   "round": 1,
+   "file": "calc_v7.js",
+   "train_pct": 93.33,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, e.g. 5 then 0 shows 50.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "While typing second operand display shows full infix like 50+1 and 50+10.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry, shows full expression only after =.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16,
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC when cleared or after =, C while entering.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      10,
+      11,
+      17
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C in test 1 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressed operator is highlighted in active_op.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "= with no operator keeps display and highlights x.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "% appends % to display and evaluates as percent of first operand, 50+10% = 55.",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = active highlight clears.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "No error case shown, error handling unknown.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:11:43"
+  },
+  {
+   "version": 8,
+   "round": 2,
+   "file": "calc_v8.js",
+   "train_pct": 93.33,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, e.g. 5 then 0 shows 50.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "While typing second operand display shows full infix like 50+1 and 50+10.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry, shows full expression only after =.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16,
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC when cleared or after =, C while entering.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      10,
+      11,
+      17
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C in test 1 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressed operator is highlighted in active_op.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "= with no operator keeps display and highlights x.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "% appends % to display and evaluates as percent of first operand, 50+10% = 55.",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = active highlight clears.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "No error case shown, error handling unknown.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:12:09"
+  },
+  {
+   "version": 9,
+   "round": 3,
+   "file": "calc_v9.js",
+   "train_pct": 73.33,
+   "held_pct": 50,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, e.g. 5 then 0 shows 50.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "While typing second operand display shows full infix like 50+1 and 50+10.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry, shows full expression only after =.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16,
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC when cleared or after =, C while entering.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      10,
+      11,
+      17
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C in test 1 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressed operator is highlighted in active_op.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "= with no operator keeps display and highlights x.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "% appends % to display and evaluates as percent of first operand, 50+10% = 55.",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = active highlight clears.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "No error case shown, error handling unknown.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:13:09"
+  },
+  {
+   "version": 10,
+   "round": 0,
+   "file": "calc_v10.js",
+   "train_pct": 66.67,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared display shows 0.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit presses append: 5 then 0 shows 50.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear label is AC when cleared, C after digit entry.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Expression line stays empty until second = shows 5x9.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5,
+      8
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Operator highlight shows active x before completion, None after =.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      8
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "First = with single entry keeps 5, second = gives 45.",
+     "status": "seen",
+     "evidence_seq": [
+      5,
+      8
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "C press can leave display unchanged at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Repeated = repeats last operation.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R9",
+     "rule": "% divides by 100.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R10",
+     "rule": "Divide by zero shows error.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:32:33"
+  },
+  {
+   "version": 11,
+   "round": 1,
+   "file": "calc_v11.js",
+   "train_pct": 86.67,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Clear key shows AC when display is 0, C when digits entered",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Pressing C once does not clear display value",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Pressing operator highlights it in active_op",
+     "status": "seen",
+     "evidence_seq": [
+      13,
+      6
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "While typing second operand display shows full infix string",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Percent appends % symbol in display",
+     "status": "seen",
+     "evidence_seq": [
+      15,
+      16
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Percent in addition evaluated as percent of first operand",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "After = display shows result and expression line shows full expression",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "After = clear label becomes AC and active highlight clears",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Pressing = with single number keeps display unchanged",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Division by zero error format",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:32:54"
+  },
+  {
+   "version": 12,
+   "round": 2,
+   "file": "calc_v12.js",
+   "train_pct": 86.67,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Clear key shows AC when display is 0, C when digits entered",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Pressing C once does not clear display value",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Pressing operator highlights it in active_op",
+     "status": "seen",
+     "evidence_seq": [
+      13,
+      6
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "While typing second operand display shows full infix string",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Percent appends % symbol in display",
+     "status": "seen",
+     "evidence_seq": [
+      15,
+      16
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Percent in addition evaluated as percent of first operand",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "After = display shows result and expression line shows full expression",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "After = clear label becomes AC and active highlight clears",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Pressing = with single number keeps display unchanged",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Division by zero error format",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:33:42"
+  },
+  {
+   "version": 13,
+   "round": 3,
+   "file": "calc_v13.js",
+   "train_pct": 86.67,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Clear key shows AC when display is 0, C when digits entered",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Pressing C once does not clear display value",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Pressing operator highlights it in active_op",
+     "status": "seen",
+     "evidence_seq": [
+      13,
+      6
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "While typing second operand display shows full infix string",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Percent appends % symbol in display",
+     "status": "seen",
+     "evidence_seq": [
+      15,
+      16
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Percent in addition evaluated as percent of first operand",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "After = display shows result and expression line shows full expression",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "After = clear label becomes AC and active highlight clears",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Pressing = with single number keeps display unchanged",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Division by zero error format",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "12:34:10"
+  },
+  {
+   "version": 14,
+   "round": 0,
+   "file": "calc_v14.js",
+   "train_pct": 91.67,
+   "held_pct": 12.5,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "AC clears display to 0 with no expression",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Expression line is None after AC and after pressing operator",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      7,
+      8
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "After = expression shows calculation e.g. 50+10%",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      5
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC when cleared or operator just pressed",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      7,
+      8
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Clear label is C after = and while entering next number",
+     "status": "seen",
+     "evidence_seq": [
+      9,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing division highlights it as active_op",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      8
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Active operator stays highlighted after = and after digit entry",
+     "status": "seen",
+     "evidence_seq": [
+      9,
+      10
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "% acts as percent of first operand: 50+10% displays 55",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Repeated = updates expression base: 50+10% then 55+10% gives 60.5",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Pressing = twice in a row can leave display unchanged",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "Pressing division twice leaves display unchanged at 60.5",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      8
+     ]
+    },
+    {
+     "id": "R12",
+     "rule": "Typing 8 with pending division shows 60.5÷8 in display",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    }
+   ],
+   "time": "12:49:49"
+  },
+  {
+   "version": 15,
+   "round": 1,
+   "file": "calc_v15.js",
+   "train_pct": 91.67,
+   "held_pct": 12.5,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared calculator shows display 0, expression None, clear AC, no active op",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Expression line is None while operator pending and while entering second operand",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      8,
+      10
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "After = expression line shows completed expression like 50+10% or 60.5÷8",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC except becomes C after incomplete =",
+     "status": "seen",
+     "evidence_seq": [
+      9,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Operator highlight stays on ÷ through operator repeat and incomplete =",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      8,
+      9,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Active op clears to None after completed division =",
+     "status": "seen",
+     "evidence_seq": [
+      11
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "50+10% = 55, so % is percent of first operand",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Repeated = with % first repeats result then updates expression to 55+10%=60.5",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Display shows in-progress entry as 60.5÷8",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "= with no second operand leaves display 60.5 and shows expression 8 with no error",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      9
+     ]
+    }
+   ],
+   "time": "12:50:19"
+  },
+  {
+   "version": 16,
+   "round": 2,
+   "file": "calc_v16.js",
+   "train_pct": 100,
+   "held_pct": 12.5,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared calculator shows display 0, expression None, clear AC, no active op",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Expression line is None while operator pending and while entering second operand",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      8,
+      10
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "After = expression line shows completed expression like 50+10% or 60.5÷8",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC except becomes C after incomplete =",
+     "status": "seen",
+     "evidence_seq": [
+      9,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Operator highlight stays on ÷ through operator repeat and incomplete =",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      8,
+      9,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Active op clears to None after completed division =",
+     "status": "seen",
+     "evidence_seq": [
+      11
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "50+10% = 55, so % is percent of first operand",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Repeated = with % first repeats result then updates expression to 55+10%=60.5",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Display shows in-progress entry as 60.5÷8",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "= with no second operand leaves display 60.5 and shows expression 8 with no error",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      9
+     ]
+    }
+   ],
+   "time": "12:50:29"
+  },
+  {
+   "version": 17,
+   "round": 3,
+   "file": "calc_v17.js",
+   "train_pct": 100,
+   "held_pct": 12.5,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared calculator shows display 0, expression None, clear AC, no active op",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Expression line is None while operator pending and while entering second operand",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      8,
+      10
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "After = expression line shows completed expression like 50+10% or 60.5÷8",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC except becomes C after incomplete =",
+     "status": "seen",
+     "evidence_seq": [
+      9,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Operator highlight stays on ÷ through operator repeat and incomplete =",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      8,
+      9,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Active op clears to None after completed division =",
+     "status": "seen",
+     "evidence_seq": [
+      11
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "50+10% = 55, so % is percent of first operand",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Repeated = with % first repeats result then updates expression to 55+10%=60.5",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Display shows in-progress entry as 60.5÷8",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "= with no second operand leaves display 60.5 and shows expression 8 with no error",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      9
+     ]
+    }
+   ],
+   "time": "12:51:11"
+  },
+  {
+   "version": 18,
+   "round": 4,
+   "file": "calc_v18.js",
+   "train_pct": 100,
+   "held_pct": 12.5,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared calculator shows display 0, expression None, clear AC, no active op",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Expression line is None while operator pending and while entering second operand",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      8,
+      10
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "After = expression line shows completed expression like 50+10% or 60.5÷8",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC except becomes C after incomplete =",
+     "status": "seen",
+     "evidence_seq": [
+      9,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Operator highlight stays on ÷ through operator repeat and incomplete =",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      8,
+      9,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Active op clears to None after completed division =",
+     "status": "seen",
+     "evidence_seq": [
+      11
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "50+10% = 55, so % is percent of first operand",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Repeated = with % first repeats result then updates expression to 55+10%=60.5",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Display shows in-progress entry as 60.5÷8",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "= with no second operand leaves display 60.5 and shows expression 8 with no error",
+     "status": "seen",
+     "evidence_seq": [
+      7,
+      9
+     ]
+    }
+   ],
+   "time": "12:51:50"
+  },
+  {
+   "version": 19,
+   "round": "modernized",
+   "file": "calc_v19.js",
+   "train_pct": 93.33,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, e.g. 5 then 0 shows 50.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "While typing second operand display shows full infix like 50+1 and 50+10.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry, shows full expression only after =.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16,
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC when cleared or after =, C while entering.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      10,
+      11,
+      17
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C in test 1 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressed operator is highlighted in active_op.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "= with no operator keeps display and highlights x.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "% appends % to display and evaluates as percent of first operand, 50+10% = 55.",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = active highlight clears.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "No error case shown, error handling unknown.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "13:33:30"
+  },
+  {
+   "version": 20,
+   "round": "modernized",
+   "file": "calc_v20.js",
+   "train_pct": 93.33,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, e.g. 5 then 0 shows 50.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "While typing second operand display shows full infix like 50+1 and 50+10.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry, shows full expression only after =.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16,
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC when cleared or after =, C while entering.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      10,
+      11,
+      17
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C in test 1 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressed operator is highlighted in active_op.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "= with no operator keeps display and highlights x.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "% appends % to display and evaluates as percent of first operand, 50+10% = 55.",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = active highlight clears.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "No error case shown, error handling unknown.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "13:33:46"
+  },
+  {
+   "version": 21,
+   "round": 0,
+   "file": "calc_v21.js",
+   "train_pct": 0,
+   "held_pct": 0,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows typed digits, e.g. 5 then 50.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Clear key label is AC when display is 0, C otherwise.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Pressing C left display at 7 in seq 2.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Expression line stays None during entry, shows e.g. 5x9 after =.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Active operator highlight can show x around = press.",
+     "status": "seen",
+     "evidence_seq": [
+      5,
+      6
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "No thousands separators seen for values up to 50.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      12
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Repeated = behavior unknown from evidence.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R8",
+     "rule": "% behavior unknown from evidence.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R9",
+     "rule": "Error display behavior unknown from evidence.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:39:26"
+  },
+  {
+   "version": 22,
+   "round": 1,
+   "file": "calc_v22.js",
+   "train_pct": 66.67,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, 5 then 0 becomes 50.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "After + then digits, display shows full infix string like 50+1 and 50+10.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line is None during entry, shows full expression like 5x9 after =.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC at 0 or after =, otherwise C.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      10,
+      17
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "C press cleared 0 in test3 but left 7 unchanged in test1.",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing operator highlights it in active_op, + and x seen.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Active operator clears to None after = with full expression.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= with single 5 leaves 5 and highlights x.",
+     "status": "seen",
+     "evidence_seq": [
+      5
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "% appends % sign, 50+10% evaluates to 55.",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "No error display observed.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:39:59"
+  },
+  {
+   "version": 23,
+   "round": 2,
+   "file": "calc_v23.js",
+   "train_pct": 93.33,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, 5 then 0 becomes 50.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "After + then digits, display shows full infix string like 50+1 and 50+10.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line is None during entry, shows full expression like 5x9 after =.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC at 0 or after =, otherwise C.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      10,
+      17
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "C press cleared 0 in test3 but left 7 unchanged in test1.",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing operator highlights it in active_op, + and x seen.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Active operator clears to None after = with full expression.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= with single 5 leaves 5 and highlights x.",
+     "status": "seen",
+     "evidence_seq": [
+      5
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "% appends % sign, 50+10% evaluates to 55.",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "No error display observed.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:40:16"
+  },
+  {
+   "version": 24,
+   "round": 3,
+   "file": "calc_v24.js",
+   "train_pct": 86.67,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, 5 then 0 becomes 50.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "After + then digits, display shows full infix string like 50+1 and 50+10.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line is None during entry, shows full expression like 5x9 after =.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC at 0 or after =, otherwise C.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      10,
+      17
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "C press cleared 0 in test3 but left 7 unchanged in test1.",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing operator highlights it in active_op, + and x seen.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Active operator clears to None after = with full expression.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= with single 5 leaves 5 and highlights x.",
+     "status": "seen",
+     "evidence_seq": [
+      5
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "% appends % sign, 50+10% evaluates to 55.",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "No error display observed.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:41:22"
+  },
+  {
+   "version": 25,
+   "round": 4,
+   "file": "calc_v25.js",
+   "train_pct": 93.33,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, 5 then 0 becomes 50.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "After + then digits, display shows full infix string like 50+1 and 50+10.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line is None during entry, shows full expression like 5x9 after =.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC at 0 or after =, otherwise C.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      10,
+      17
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "C press cleared 0 in test3 but left 7 unchanged in test1.",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing operator highlights it in active_op, + and x seen.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Active operator clears to None after = with full expression.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= with single 5 leaves 5 and highlights x.",
+     "status": "seen",
+     "evidence_seq": [
+      5
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "% appends % sign, 50+10% evaluates to 55.",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "No error display observed.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:42:19"
+  },
+  {
+   "version": 26,
+   "round": 0,
+   "file": "calc_v26.js",
+   "train_pct": 53.33,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Digits append to display (5 then 0 shows 50)",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Expression line stays empty during entry, shows expression after =",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear key shows C after digit entry, AC after AC or =",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "C press left display at 7 unchanged",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "AC or C resets display to 0 with AC label",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing × highlights operator",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Operator highlight cleared after = completes",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "5 × 9 = shows 45",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Repeated = behavior not shown",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R10",
+     "rule": "% behavior not shown",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "Error display format not shown",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:44:10"
+  },
+  {
+   "version": 27,
+   "round": 1,
+   "file": "calc_v27.js",
+   "train_pct": 53.33,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Digits append to display (5 then 0 shows 50)",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Expression line stays empty during entry, shows expression after =",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear key shows C after digit entry, AC after AC or =",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "C press left display at 7 unchanged",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "AC or C resets display to 0 with AC label",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing × highlights operator",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Operator highlight cleared after = completes",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "5 × 9 = shows 45",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Repeated = behavior not shown",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R10",
+     "rule": "% behavior not shown",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "Error display format not shown",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:44:12"
+  },
+  {
+   "version": 28,
+   "round": 2,
+   "file": "calc_v28.js",
+   "train_pct": 53.33,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Digits append to display (5 then 0 shows 50)",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Expression line stays empty during entry, shows expression after =",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear key shows C after digit entry, AC after AC or =",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "C press left display at 7 unchanged",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "AC or C resets display to 0 with AC label",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing × highlights operator",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Operator highlight cleared after = completes",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "5 × 9 = shows 45",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Repeated = behavior not shown",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R10",
+     "rule": "% behavior not shown",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "Error display format not shown",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:44:14"
+  },
+  {
+   "version": 29,
+   "round": 0,
+   "file": "calc_v29.js",
+   "train_pct": 60,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits with appending e.g. 5 then 0 gives 50.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Expression line stays empty during entry.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      6
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line shows full calculation after = e.g. 5x9.",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC when cleared and C after digit entry.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      10,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Observed C press left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Active operator highlights selected operator.",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Active operator cleared after =.",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= computes result e.g. 5x9 gives 45.",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R10",
+     "rule": "% behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "Error display behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:45:27"
+  },
+  {
+   "version": 30,
+   "round": 0,
+   "file": "calc_v30.js",
+   "train_pct": 46.67,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared display shows 0.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends to display.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line empty during entry, shows full expression after =.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key shows AC when cleared, switches to C after digit entry.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C resets display to 0 and label to AC.",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing C with display 7 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active.",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Pressing = computes result and clears operator highlight.",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Pressing = with no pending operation leaves display unchanged.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = repeats last operation.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "% computes percent.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "Divide by zero shows error.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:46:43"
+  },
+  {
+   "version": 31,
+   "round": 1,
+   "file": "calc_v31.js",
+   "train_pct": 53.33,
+   "held_pct": 50,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared display shows 0.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends to display.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line empty during entry, shows full expression after =.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key shows AC when cleared, switches to C after digit entry.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C resets display to 0 and label to AC.",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing C with display 7 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active.",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Pressing = computes result and clears operator highlight.",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Pressing = with no pending operation leaves display unchanged.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = repeats last operation.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "% computes percent.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "Divide by zero shows error.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:46:46"
+  },
+  {
+   "version": 32,
+   "round": 2,
+   "file": "calc_v32.js",
+   "train_pct": 60,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared display shows 0.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends to display.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line empty during entry, shows full expression after =.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key shows AC when cleared, switches to C after digit entry.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C resets display to 0 and label to AC.",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing C with display 7 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active.",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Pressing = computes result and clears operator highlight.",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Pressing = with no pending operation leaves display unchanged.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = repeats last operation.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "% computes percent.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "Divide by zero shows error.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:46:49"
+  },
+  {
+   "version": 33,
+   "round": 3,
+   "file": "calc_v33.js",
+   "train_pct": 80,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared display shows 0.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends to display.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line empty during entry, shows full expression after =.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key shows AC when cleared, switches to C after digit entry.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C resets display to 0 and label to AC.",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing C with display 7 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active.",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Pressing = computes result and clears operator highlight.",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Pressing = with no pending operation leaves display unchanged.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = repeats last operation.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "% computes percent.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "Divide by zero shows error.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:46:52"
+  },
+  {
+   "version": 34,
+   "round": 4,
+   "file": "calc_v34.js",
+   "train_pct": 80,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared display shows 0.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends to display.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line empty during entry, shows full expression after =.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key shows AC when cleared, switches to C after digit entry.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C resets display to 0 and label to AC.",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing C with display 7 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active.",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Pressing = computes result and clears operator highlight.",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Pressing = with no pending operation leaves display unchanged.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = repeats last operation.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "% computes percent.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "Divide by zero shows error.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:46:55"
+  },
+  {
+   "version": 35,
+   "round": 5,
+   "file": "calc_v35.js",
+   "train_pct": 53.33,
+   "held_pct": 50,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared display shows 0.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends to display.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line empty during entry, shows full expression after =.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key shows AC when cleared, switches to C after digit entry.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C resets display to 0 and label to AC.",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing C with display 7 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active.",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Pressing = computes result and clears operator highlight.",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Pressing = with no pending operation leaves display unchanged.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = repeats last operation.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "% computes percent.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "Divide by zero shows error.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:46:58"
+  },
+  {
+   "version": 36,
+   "round": 6,
+   "file": "calc_v36.js",
+   "train_pct": 80,
+   "held_pct": 75,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Cleared display shows 0.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      10
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends to display.",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line empty during entry, shows full expression after =.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      8
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear key shows AC when cleared, switches to C after digit entry.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C resets display to 0 and label to AC.",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressing C with display 7 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Pressing operator highlights it as active.",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Pressing = computes result and clears operator highlight.",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Pressing = with no pending operation leaves display unchanged.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = repeats last operation.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "% computes percent.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "Divide by zero shows error.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:47:04"
+  },
+  {
+   "version": 37,
+   "round": 0,
+   "file": "calc_v37.js",
+   "train_pct": 46.67,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "AC resets display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends, preserving trailing 0 as in 5 then 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear label is AC when cleared and C during entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Expression line stays empty during entry",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      12
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing operator highlights it as active_op",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press left display at 7 in test 1",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "C after entry clears display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= shows result, e.g. 5x9=45",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = expression shows operands and operator as 5x9",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "After = active highlight clears and clear label returns to AC",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = repeats last operation",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "% divides entry by 100",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R13",
+     "rule": "Divide by zero shows Error",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R14",
+     "rule": "Large results use commas without trailing zeros",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:47:18"
+  },
+  {
+   "version": 38,
+   "round": 1,
+   "file": "calc_v38.js",
+   "train_pct": 53.33,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "AC resets display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends, preserving trailing 0 as in 5 then 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear label is AC when cleared and C during entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Expression line stays empty during entry",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      12
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing operator highlights it as active_op",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press left display at 7 in test 1",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "C after entry clears display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= shows result, e.g. 5x9=45",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = expression shows operands and operator as 5x9",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "After = active highlight clears and clear label returns to AC",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = repeats last operation",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "% divides entry by 100",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R13",
+     "rule": "Divide by zero shows Error",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R14",
+     "rule": "Large results use commas without trailing zeros",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:47:21"
+  },
+  {
+   "version": 39,
+   "round": 2,
+   "file": "calc_v39.js",
+   "train_pct": 73.33,
+   "held_pct": 75,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "AC resets display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends, preserving trailing 0 as in 5 then 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear label is AC when cleared and C during entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Expression line stays empty during entry",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      12
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing operator highlights it as active_op",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press left display at 7 in test 1",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "C after entry clears display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= shows result, e.g. 5x9=45",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = expression shows operands and operator as 5x9",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "After = active highlight clears and clear label returns to AC",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = repeats last operation",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "% divides entry by 100",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R13",
+     "rule": "Divide by zero shows Error",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R14",
+     "rule": "Large results use commas without trailing zeros",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:47:24"
+  },
+  {
+   "version": 40,
+   "round": 3,
+   "file": "calc_v40.js",
+   "train_pct": 73.33,
+   "held_pct": 50,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "AC resets display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends, preserving trailing 0 as in 5 then 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear label is AC when cleared and C during entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Expression line stays empty during entry",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      12
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing operator highlights it as active_op",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press left display at 7 in test 1",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "C after entry clears display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= shows result, e.g. 5x9=45",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = expression shows operands and operator as 5x9",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "After = active highlight clears and clear label returns to AC",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = repeats last operation",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "% divides entry by 100",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R13",
+     "rule": "Divide by zero shows Error",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R14",
+     "rule": "Large results use commas without trailing zeros",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:47:28"
+  },
+  {
+   "version": 41,
+   "round": 4,
+   "file": "calc_v41.js",
+   "train_pct": 73.33,
+   "held_pct": 50,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "AC resets display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends, preserving trailing 0 as in 5 then 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear label is AC when cleared and C during entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Expression line stays empty during entry",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      12
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing operator highlights it as active_op",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press left display at 7 in test 1",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "C after entry clears display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= shows result, e.g. 5x9=45",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = expression shows operands and operator as 5x9",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "After = active highlight clears and clear label returns to AC",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = repeats last operation",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "% divides entry by 100",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R13",
+     "rule": "Divide by zero shows Error",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R14",
+     "rule": "Large results use commas without trailing zeros",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:47:31"
+  },
+  {
+   "version": 42,
+   "round": 5,
+   "file": "calc_v42.js",
+   "train_pct": 73.33,
+   "held_pct": 50,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "AC resets display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends, preserving trailing 0 as in 5 then 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear label is AC when cleared and C during entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Expression line stays empty during entry",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      12
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing operator highlights it as active_op",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press left display at 7 in test 1",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "C after entry clears display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= shows result, e.g. 5x9=45",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = expression shows operands and operator as 5x9",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "After = active highlight clears and clear label returns to AC",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = repeats last operation",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "% divides entry by 100",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R13",
+     "rule": "Divide by zero shows Error",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R14",
+     "rule": "Large results use commas without trailing zeros",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:47:34"
+  },
+  {
+   "version": 43,
+   "round": 6,
+   "file": "calc_v43.js",
+   "train_pct": 73.33,
+   "held_pct": 50,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "AC resets display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Digit entry appends, preserving trailing 0 as in 5 then 50",
+     "status": "seen",
+     "evidence_seq": [
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Clear label is AC when cleared and C during entry",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      11
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Expression line stays empty during entry",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      12
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing operator highlights it as active_op",
+     "status": "seen",
+     "evidence_seq": [
+      6
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "C press left display at 7 in test 1",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "C after entry clears display to 0",
+     "status": "seen",
+     "evidence_seq": [
+      10
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "= shows result, e.g. 5x9=45",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = expression shows operands and operator as 5x9",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "After = active highlight clears and clear label returns to AC",
+     "status": "seen",
+     "evidence_seq": [
+      8
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "Repeated = repeats last operation",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R12",
+     "rule": "% divides entry by 100",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R13",
+     "rule": "Divide by zero shows Error",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R14",
+     "rule": "Large results use commas without trailing zeros",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "15:47:38"
+  },
+  {
+   "version": 44,
+   "round": "modernized",
+   "file": "calc_v44.js",
+   "train_pct": 16.67,
+   "held_pct": 40,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Display shows entered digits, e.g. 5 then 0 shows 50.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      11,
+      12
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "While typing second operand display shows full infix like 50+1 and 50+10.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Expression line stays empty during entry, shows full expression only after =.",
+     "status": "seen",
+     "evidence_seq": [
+      14,
+      15,
+      16,
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Clear label is AC when cleared or after =, C while entering.",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      8,
+      10,
+      11,
+      17
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Pressing C in test 1 left display at 7.",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Pressed operator is highlighted in active_op.",
+     "status": "seen",
+     "evidence_seq": [
+      6,
+      13
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "= with no operator keeps display and highlights x.",
+     "status": "seen",
+     "evidence_seq": [
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "% appends % to display and evaluates as percent of first operand, 50+10% = 55.",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "After = active highlight clears.",
+     "status": "seen",
+     "evidence_seq": [
+      8,
+      17
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Repeated = behavior not shown.",
+     "status": "guessed",
+     "evidence_seq": []
+    },
+    {
+     "id": "R11",
+     "rule": "No error case shown, error handling unknown.",
+     "status": "guessed",
+     "evidence_seq": []
+    }
+   ],
+   "time": "16:23:35"
+  }
+ ],
+ "cal": [
+  {
+   "version": 1,
+   "round": 0,
+   "file": "cal_v1.js",
+   "train_pct": 100,
+   "held_pct": null,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Header line is centered month name + year padded with spaces to fixed width",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Second line is always 'Su Mo Tu We Th Fr Sa' plus trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Each day column is 3-char wide with single-digit days right-aligned",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Every line has trailing spaces to same fixed width of 22 chars",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Output is always 8 lines: header + weekday row + 6 week rows",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "February has 29 days in 2024 and 28 days in 2023, so 2024 is leap year",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      3
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Jan 2024 starts Monday, Feb 2024 starts Thursday, Feb 2023 starts Wednesday",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Oct 1752 starts Sunday and has 31 days",
+     "status": "seen",
+     "evidence_seq": [
+      5
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "September 1752 is unusual: jumps from 2 directly to 14, omitting 3-13",
+     "status": "seen",
+     "evidence_seq": [
+      4
+     ]
+    }
+   ],
+   "time": "12:28:14"
+  },
+  {
+   "version": 2,
+   "round": 0,
+   "file": "cal_v2.js",
+   "train_pct": 38.1,
+   "held_pct": null,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Header line is month name + year centered with spaces padded to 22 chars",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      3,
+      16
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Second line is always 'Su Mo Tu We Th Fr Sa  '",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Each day column is 3 chars wide, right-aligned single digit with leading space",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      15,
+      18
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Every line including blank weeks is padded with trailing spaces to 22 width",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      4
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Output always has 8 lines: header + weekday row + 6 week rows",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      4,
+      14
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "February has 29 days in 1752 and 2024, showing leap year",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      14
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "31-day months seen: Jan 1752, Jan 2026, Dec 1752, Dec 1999; 30-day: Apr, Jun, Nov",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Month start weekdays: Jan 1752 Wed, Feb 1752 Sat, Dec 1752 Fri, Jan 2026 Thu, Nov 2026 Sun",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      2,
+      4,
+      15,
+      18
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "September 1752 skips 3-13, going 2 directly to 14",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    }
+   ],
+   "time": "13:28:18"
+  },
+  {
+   "version": 3,
+   "round": 1,
+   "file": "cal_v3.js",
+   "train_pct": 100,
+   "held_pct": null,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Header line is Month-name + year centered in 22-char field with trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Second line is always 'Su Mo Tu We Th Fr Sa  '",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Each day uses 3-char right-aligned column, weeks start Sunday",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Every line padded with trailing spaces to 22 chars",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Output is always 8 lines: header + weekday row + 6 week rows, blanks if unused",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "31-day months: Jan, Mar, Aug, Oct, Dec show 1-31",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "30-day months: Apr, Jun, Nov show 1-30",
+     "status": "seen",
+     "evidence_seq": [
+      16
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "February has 29 days in 1752, 2024, 1600 and 28 days in 1800, 2100",
+     "status": "seen",
+     "evidence_seq": [
+      2
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Century leap rule: 1600 leap but 1800 and 2100 not leap",
+     "status": "seen",
+     "evidence_seq": [
+      22
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Start weekday varies, e.g. Jan 1752 Wed, Nov 2026 Sun, Aug 2026 Sat",
+     "status": "seen",
+     "evidence_seq": [
+      3
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "September 1752 skips 3-13, goes 1 2 then 14-30",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    }
+   ],
+   "time": "13:28:44"
+  },
+  {
+   "version": 4,
+   "round": 0,
+   "file": "cal_v4.js",
+   "train_pct": 100,
+   "held_pct": null,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Output is 8 lines: 1 centered month-year header + 1 weekday row + 6 week rows",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      4,
+      14
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Header is month name + space + year, centered/padded with spaces",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      15,
+      16
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Weekday row is exactly 'Su Mo Tu We Th Fr Sa' plus trailing spaces, Sunday first",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      14,
+      15
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Each day column is 3 chars wide: 2-char right-aligned number plus space separator",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      17,
+      18
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "All lines padded with trailing spaces to same fixed width",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      4,
+      14,
+      19
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Unused calendar cells are blank spaces; empty week rows left as blank padded line",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      15,
+      16
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "31-day months show 1-31: January and December",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      15,
+      19
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "30-day months show 1-30: April, June, November",
+     "status": "seen",
+     "evidence_seq": [
+      16,
+      17,
+      18
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "February has 29 days in both 1752 and 2024, so both treated as leap years",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      14
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "Month start weekday is as printed, e.g. Jan 1752 starts Wednesday, Feb 1752 starts Saturday, Nov 2026 starts Sunday",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      2,
+      18
+     ]
+    },
+    {
+     "id": "R11",
+     "rule": "September 1752 is unusual: goes 1, 2 then jumps to 14, omitting 3-13",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    }
+   ],
+   "time": "13:58:45"
+  },
+  {
+   "version": 5,
+   "round": 0,
+   "file": "cal_v5.js",
+   "train_pct": 0,
+   "held_pct": null,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Output has 8 lines: 1 centered month-year header, 1 weekday row, 6 week rows",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      4,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Header is month name + space + year, centered in width 22",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      3,
+      16,
+      17
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Line 2 is always 'Su Mo Tu We Th Fr Sa  '",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      4,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Each day cell is width 3, right-aligned number plus space, 7 per row",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      18
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Every line padded with trailing spaces to width 22, including all-blank filler week rows",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Unused week rows filled as 22 spaces to keep 6 week rows",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "Day 1 placed under its weekday column, earlier cells left blank",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      3,
+      4,
+      14,
+      15,
+      16,
+      17,
+      18
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "30-day months: April, June, November; 31-day months: January, December seen",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      15,
+      16,
+      17,
+      18,
+      19
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Leap February with 29 days seen in 1752 and 2024",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      14
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "September 1752 jumps from 2 to 14, omitting 3-13, only 19 days shown",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    }
+   ],
+   "time": "14:15:13"
+  },
+  {
+   "version": 6,
+   "round": 1,
+   "file": "cal_v6.js",
+   "train_pct": 95.24,
+   "held_pct": null,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Header line is centered Month Year padded with spaces to 22 chars total including trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      1,
+      16
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Second line is always 'Su Mo Tu We Th Fr Sa  ' with two trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Each date cell is 3 chars wide: 2-char right-aligned number plus 1 space, empty cells are 3 spaces",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      17,
+      18
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Every line is padded with trailing spaces to same 22-char width",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      15
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Output always has 8 lines: 1 header + 1 weekday header + 6 week rows, unused rows are blank spaces",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      26
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Months show standard lengths: Jan/Mar/Oct/Dec 31, Apr/Jun/Nov 30, seen in outputs",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      16,
+      17,
+      18,
+      28,
+      30
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "February has 29 days in 1752, 2024, 1600 and 28 days in 1800, 2100",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      14,
+      22,
+      23,
+      24
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "First-of-month weekday placement is as printed, e.g. Feb 1 1752 Saturday, Jan 1 1752 Wednesday, Nov 1 2026 Sunday",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      3,
+      18
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "September 1752 is unusual: after 2 it jumps to 14, omitting 3-13, with only 30 days shown",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    }
+   ],
+   "time": "14:15:41"
+  },
+  {
+   "version": 7,
+   "round": 2,
+   "file": "cal_v7.js",
+   "train_pct": 95.24,
+   "held_pct": null,
+   "kept": false,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Header line is centered Month Year padded with spaces to 22 chars total including trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      1,
+      16
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Second line is always 'Su Mo Tu We Th Fr Sa  ' with two trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Each date cell is 3 chars wide: 2-char right-aligned number plus 1 space, empty cells are 3 spaces",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      17,
+      18
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Every line is padded with trailing spaces to same 22-char width",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      15
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Output always has 8 lines: 1 header + 1 weekday header + 6 week rows, unused rows are blank spaces",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      26
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Months show standard lengths: Jan/Mar/Oct/Dec 31, Apr/Jun/Nov 30, seen in outputs",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      16,
+      17,
+      18,
+      28,
+      30
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "February has 29 days in 1752, 2024, 1600 and 28 days in 1800, 2100",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      14,
+      22,
+      23,
+      24
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "First-of-month weekday placement is as printed, e.g. Feb 1 1752 Saturday, Jan 1 1752 Wednesday, Nov 1 2026 Sunday",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      3,
+      18
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "September 1752 is unusual: after 2 it jumps to 14, omitting 3-13, with only 30 days shown",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    }
+   ],
+   "time": "14:16:47"
+  },
+  {
+   "version": 8,
+   "round": 3,
+   "file": "cal_v8.js",
+   "train_pct": 100,
+   "held_pct": null,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Header line is centered Month Year padded with spaces to 22 chars total including trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      1,
+      16
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Second line is always 'Su Mo Tu We Th Fr Sa  ' with two trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Each date cell is 3 chars wide: 2-char right-aligned number plus 1 space, empty cells are 3 spaces",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      17,
+      18
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Every line is padded with trailing spaces to same 22-char width",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      15
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Output always has 8 lines: 1 header + 1 weekday header + 6 week rows, unused rows are blank spaces",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      26
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Months show standard lengths: Jan/Mar/Oct/Dec 31, Apr/Jun/Nov 30, seen in outputs",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      16,
+      17,
+      18,
+      28,
+      30
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "February has 29 days in 1752, 2024, 1600 and 28 days in 1800, 2100",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      14,
+      22,
+      23,
+      24
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "First-of-month weekday placement is as printed, e.g. Feb 1 1752 Saturday, Jan 1 1752 Wednesday, Nov 1 2026 Sunday",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      3,
+      18
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "September 1752 is unusual: after 2 it jumps to 14, omitting 3-13, with only 30 days shown",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    }
+   ],
+   "time": "14:17:04"
+  },
+  {
+   "version": 9,
+   "round": 0,
+   "file": "cal_v9.js",
+   "train_pct": 90.48,
+   "held_pct": null,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Line 1 is centered header 'MonthName YYYY'",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      15,
+      1
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Line 2 is exactly 'Su Mo Tu We Th Fr Sa' plus trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      14,
+      18
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Each weekday column is 3 chars wide, right-aligned day number plus space",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      18
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Every line padded with trailing spaces to same total width",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      3,
+      4
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Output always 8 lines: 1 header + 1 weekday row + 6 week rows",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      14
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "Month lengths: January 31, April 30, June 30, November 30, December 31",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      16,
+      17,
+      18,
+      4
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "February has 29 days in 1752 and 2024",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      14
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Months start on observed weekday: Jan 1752 Wed, Dec 1752 Fri, Jan 2026 Thu, Nov 2026 Sun",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      4,
+      15,
+      18
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "September 1752 is unusual: goes 1,2 then jumps to 14, omits 3-13",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    }
+   ],
+   "time": "15:17:52"
+  },
+  {
+   "version": 10,
+   "round": 1,
+   "file": "cal_v10.js",
+   "train_pct": 100,
+   "held_pct": null,
+   "kept": true,
+   "rules": [
+    {
+     "id": "R1",
+     "rule": "Header line 1 is 'Month YYYY' centered/padded with spaces to fixed width 22 including trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      3,
+      15
+     ]
+    },
+    {
+     "id": "R2",
+     "rule": "Line 2 is fixed weekday row 'Su Mo Tu We Th Fr Sa  ' with two trailing spaces",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      2,
+      3,
+      18
+     ]
+    },
+    {
+     "id": "R3",
+     "rule": "Each date cell is width 3: right-aligned 2-char day plus space, blanks are 3 spaces",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      17,
+      18
+     ]
+    },
+    {
+     "id": "R4",
+     "rule": "Every line including blank week rows is padded with trailing spaces to width 22",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      26
+     ]
+    },
+    {
+     "id": "R5",
+     "rule": "Total output is always 8 lines: 1 title + 1 weekday header + 6 week rows",
+     "status": "seen",
+     "evidence_seq": [
+      1,
+      4,
+      26
+     ]
+    },
+    {
+     "id": "R6",
+     "rule": "31-day months show 1-31, 30-day months end at 30, e.g. April 2026 ends 30",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      16,
+      27
+     ]
+    },
+    {
+     "id": "R7",
+     "rule": "February has 29 days in 1752, 2024 and 1600 but 28 days in 1800 and 2100",
+     "status": "seen",
+     "evidence_seq": [
+      2,
+      14,
+      22,
+      23,
+      24
+     ]
+    },
+    {
+     "id": "R8",
+     "rule": "Leap rule seen: century years leap only if divisible by 400, so 1600 leaps but 1800 and 2100 do not",
+     "status": "seen",
+     "evidence_seq": [
+      22,
+      23,
+      24
+     ]
+    },
+    {
+     "id": "R9",
+     "rule": "Month start weekday is as printed, e.g. Jan 1752 Wed, Feb 1752 Sat, Nov 2026 Sun, Aug 2026 Sat",
+     "status": "seen",
+     "evidence_seq": [
+      3,
+      2,
+      18,
+      26
+     ]
+    },
+    {
+     "id": "R10",
+     "rule": "September 1752 is unusual: jumps from 2 directly to 14, omitting 3-13",
+     "status": "seen",
+     "evidence_seq": [
+      1
+     ]
+    }
+   ],
+   "time": "15:18:29"
+  }
+ ]
+}

@@ -70,13 +70,15 @@ state = {"busy": False, "trace": None, "brain_running": False, "loop": None, "wa
 subscribers = set()
 
 
-def new_trace():
+def new_trace(first=False):
     session = time.strftime("%Y%m%d-%H%M%S")
-    state["trace"] = Trace(ROOT / "traces" / f"{session}.jsonl", source=SOURCE)
+    saved = os.environ.get("CLEANROOM_TRACE")  # start from a saved session (a clean recording for the demo)
+    path = ROOT / saved if first and saved else ROOT / "traces" / f"{session}.jsonl"
+    state["trace"] = Trace(path, source=SOURCE)
     return state["trace"]
 
 
-new_trace()
+new_trace(first=True)
 
 
 def mirror_window_id():
