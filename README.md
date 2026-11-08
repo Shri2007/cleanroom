@@ -140,10 +140,11 @@ Details: [agent/README.md](agent/README.md) · [agent/ADDRESSES.md](agent/ADDRES
 
 ## Meta's role
 
-Meta `muse-spark-1.3` is both the eyes and the brain:
+Meta `muse-spark-1.3` is the eyes and the reasoning brain:
 
 - **Eyes:** reads the phone screen after every press.
-- **Brain:** writes the rules (seen vs guessed), writes each copy, fixes it from mismatches, picks the next test to try, rebuilds `cal` for the agents, and modernizes the final copy.
+- **Reasoning:** writes the rules (seen vs guessed), picks the next test to try, and modernizes the final copy.
+- **Code writing in the live loop:** to keep the live demo under 40 seconds, the write-and-fix loop uses Google Gemini Flash-Lite (about 3 s per copy), with Meta as its backup.
 
 We run it with `reasoning_effort="minimal"`. At the default setting it thought for about 4.5 minutes before writing a copy; at minimal it takes about 13 seconds and the copies still score the same. Gemini Flash-Lite is wired in as a fallback only.
 
@@ -315,7 +316,7 @@ Copyright protects code, not behavior. Clean Room never sees the original code; 
 | Kind | What |
 |---|---|
 | Apps we watched | The iPhone Calculator app (through iPhone Mirroring), the Unix `cal` program, the Block Blast game (bonus) |
-| Models | Meta `muse-spark-1.3` (eyes and brain), Google Gemini Flash-Lite (fallback) |
+| Models | Meta `muse-spark-1.3` (eyes and reasoning), Google Gemini Flash-Lite (fast code writer in the live loop) |
 | Libraries | FastAPI, uvicorn, OpenCV, the OpenAI Python SDK (as the API client), python-dotenv, PyObjC (Quartz), Fetch.ai uAgents, Node.js |
 
 ## Team

@@ -17,7 +17,7 @@ CHANGED_SHARE = 0.002    # a screen changed if more than 0.2% of its pixels chan
 # Watch everything below the status bar clock: the display AND the keypad, because an operator press
 # only lights its key. The short press glow is filtered by waiting for the screen to hold still.
 DISPLAY_TOP, DISPLAY_BOTTOM = 0.10, 1.0
-SETTLE_FRAMES = 3  # identical screenshots in a row (~0.35 s) before a screen counts as settled
+SETTLE_FRAMES = 2  # two matching screenshots catch short pauses without reading every animation frame
 
 DIGITS = set("0123456789")
 OPS = {"+", "-", "×", "÷"}
